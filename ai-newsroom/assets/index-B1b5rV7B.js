@@ -175,6 +175,15 @@ Score each translated story 1-10 using BBC news values:
 3. Follow section structure: Opening → Headlines → ${g.name} Block → ${x.name} Block → Sign-off
 4. Pass to Editor
 
+**STORY COMPLETENESS REQUIREMENTS (MANDATORY):**
+- Each story must be MINIMUM 1500 characters (~2 minutes audio) to ensure sufficient detail
+- Include comprehensive background context for international listeners unfamiliar with local politics/culture
+- Explain all local terms, acronyms, organizations, and political concepts on first mention
+- Answer the "5 Ws + How" for every story: Who, What, When, Where, Why, and How
+- Provide historical context if the story references past events or ongoing situations
+- Define any country-specific terminology (e.g., "centrally controlled city", "provincial status", etc.)
+- Assume the listener has ZERO prior knowledge of the country's political system, geography, or recent history
+
 **Output Format**:
 \`\`\`
 ## FIRST DRAFT SCRIPT
@@ -216,6 +225,14 @@ Score each translated story 1-10 using BBC news values:
 10. **Oral Readability**: No sentence >20 words.
 
 **Approval Status**: [REJECTED / CONDITIONAL / BBC CLEARED Phase 1]
+
+**EDITOR COMPLETENESS AUDIT (MANDATORY - CHECK BEFORE APPROVAL):**
+- Verify each story is minimum 1500 characters
+- Check: Would a listener from another continent understand this without Googling?
+- Flag any unexplained local references, terms, or context
+- Ensure political/geographical concepts are defined for international audience
+- Reject stories that assume prior knowledge of the country's internal affairs
+- If story is too short, request expansion with additional context and background
 
 ---
 
