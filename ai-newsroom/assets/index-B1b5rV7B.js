@@ -175,6 +175,21 @@ Score each translated story 1-10 using BBC news values:
 1. Generate initial BBC-standard script using auto-selected stories (all in English)
 2. Include all music cues per configuration
 3. Follow section structure: Opening → Headlines → ${g.name} Block → ${x.name} Block → Sign-off
+
+**STORY COMPLETENESS REQUIREMENTS - ALL MANDATORY, NO EXCEPTIONS:**
+
+- **MANDATORY MINIMUM LENGTH**: Each story MUST be AT LEAST 1500 characters. Stories under 1500 chars are INCOMPLETE and must be expanded.
+- **MANDATORY INTERNATIONAL CONTEXT**: Each story MUST include comprehensive background for listeners unfamiliar with local politics/culture. NO ASSUMPTIONS of prior knowledge.
+- **MANDATORY TERM DEFINITIONS**: ALL local terms, acronyms, organizations, and political concepts MUST be defined on first mention. NO UNDEFINED TERMS allowed.
+- **MANDATORY 5 Ws + How**: EVERY story MUST answer Who, What, When, Where, Why, and How. Missing any = INCOMPLETE.
+- **MANDATORY HISTORICAL CONTEXT**: If story references past events, historical context MUST be provided. NO EXCEPTIONS.
+- **MANDATORY CONCEPT EXPLANATION**: Country-specific terminology MUST be fully explained. NO UNEXPLAINED CONCEPTS.
+- **MANDATORY ZERO-KNOWLEDGE ASSUMPTION**: Write for listeners with ZERO prior knowledge of the country's political system, geography, or recent history.
+- **MANDATORY CONTINENT-SPECIFIC ANGLE FOR ${x.name} NEWS**: 
+  - If a story is happening OUTSIDE ${x.name}, it MUST have a ${x.name}-specific angle (impact on ${x.name}, ${x.name} involvement, etc.)
+  - ${x.name} news stories MUST start with "In [country within ${x.name}]..."
+  - Stories about other continents WITHOUT a ${x.name} angle are REJECTED
+
 4. Pass to Editor
 
 **Output Format**:
@@ -216,6 +231,20 @@ Score each translated story 1-10 using BBC news values:
 8. **Topic Alignment**: Verify stories align with selected topics (${p.join(", ")}). Flag any off-topic stories.
 9. **Timeframe Parameters**: **CRITICAL** - Verify all 8 stories fall within the ${m} window.
 10. **Oral Readability**: No sentence >20 words.
+
+**EDITOR COMPLETENESS AUDIT - REJECT IF ANY REQUIREMENT FAILS:**
+
+- **REJECT IF UNDER 1500 CHARS**: Any story under 1500 characters is AUTOMATICALLY REJECTED. Return to Writer for mandatory expansion.
+- **REJECT IF INTERNATIONAL LISTENER WOULD GOOGLE**: If a listener from another continent wouldn't understand without searching, REJECT.
+- **REJECT IF ANY UNDEFINED TERMS**: Every local reference, term, acronym, organization MUST be defined. Missing any = REJECT.
+- **REJECT IF MISSING 5 Ws + HOW**: Who, What, When, Where, Why, How must ALL be answered. Missing any = REJECT.
+- **REJECT IF UNDEFINED POLITICAL/GEOGRAPHICAL CONCEPTS**: All concepts must be defined for international audience. Undefined = REJECT.
+- **REJECT IF ASSUMES PRIOR KNOWLEDGE**: Any story assuming listener knows country's internal affairs = REJECT.
+- **REJECT IF ${g.name} STORIES IN ${x.name} BLOCK**: Continent block must ONLY contain other ${x.name} countries.
+- **REJECT IF ${x.name} NEWS LACKS CONTINENT ANGLE**: Stories happening outside ${x.name} WITHOUT ${x.name}-specific angle = REJECT.
+- **REJECT IF ${x.name} NEWS DOESN'T START WITH "In [country]..."**: Must specify which ${x.name} country the story is about.
+
+**NO APPROVAL UNTIL ALL REQUIREMENTS PASS. NO EXCEPTIONS.**
 
 **Approval Status**: [REJECTED / CONDITIONAL / BBC CLEARED Phase 1]
 
