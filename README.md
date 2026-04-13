@@ -82,9 +82,9 @@ Reviews scripts for:
 - Ensures narrative continuity
 
 ### Agent 6: Audio Producer
-- Generates speech using selected voice
-- Mixes music cues at proper timestamps
-- Produces final MP3
+- **STEP 1**: Generate narration using Mandarin TTS with English language
+- **STEP 2**: Mix music with narration (MUSIC AND NARRATION NEVER OVERLAP)
+- **STEP 3**: Produce final MP3
 
 ---
 
@@ -142,6 +142,8 @@ https://github.com/atavist89-max/Ai-newsroom
 ## Changelog
 
 ### Latest Updates
+- Audio Producer: Mandarin TTS now mandatory in STEP 2
+- Audio Producer: Added rule - music and narration must NEVER overlap
 - Removed non-functional download button
 - Added "Crime" topic
 - Changed sentence length requirement to statistical distribution (60% between 15-30 words)
