@@ -9,8 +9,9 @@ A web application that generates sophisticated agent swarm prompts for automated
 ## Features
 
 ### Geographic Selection
-- **100+ countries** across 7 continents
-- Interactive map with country selection
+- **196 countries** across all 7 continents (Europe, Africa, Asia, North America, South America, Middle East, Oceania)
+- **Searchable country dropdown** with live filtering and flag emojis (🇩🇪, 🇺🇸, 🇯🇵, etc.)
+- **Interactive map** highlighting selected country in green and continent in yellow
 - Automatic continent detection
 - Local news sources for each country
 - Continental news sources for broader coverage
@@ -33,8 +34,10 @@ Select up to 3 topics:
 
 ### Voice Selection
 - **Adam** - Professional male, American accent
+- **Bella** - Professional female, American accent
 - **Josh** - Authoritative male, British accent
 - **Rachel** - Warm female, American accent
+- **Play/Pause preview buttons** for each voice
 
 ### Music Suite
 Customize your podcast's audio identity:
@@ -42,6 +45,14 @@ Customize your podcast's audio identity:
 - **Outro Music** - Matching intro style
 - **Story Sting** - Short transition between stories
 - **Block Transition** - Between major sections
+- **Play/Pause preview buttons** for each music slot
+- Dropdowns now properly update music selection state
+
+### Editorial Settings
+- **5-Position Bias Slider** - Extreme Left → Moderate Left → Moderate → Moderate Right → Extreme Right
+- **Color Gradient** - Red → Purple → Blue visual indicator
+- **Bias Definition Panel** - Shows how the selected perspective affects headlines, story order, language, and quotes
+- **Editorial Segment Toggle** - Optional in-depth thematic analysis section with conditional prompt generation
 
 ---
 
@@ -78,7 +89,7 @@ Reviews scripts for:
 
 ### Agent 5: Researcher (Conditional)
 - Only activated if fact-check fails
-- Finds replacement stories from yesterday's news
+- Finds replacement stories from the correct coverage period
 - Ensures narrative continuity
 
 ### Agent 6: Audio Producer
@@ -105,13 +116,15 @@ Every story must meet these criteria:
 
 ## Usage
 
-1. **Select a country** from the map or dropdown
+1. **Select a country** from the searchable dropdown (with flags)
 2. **Choose timeframe** (Daily/Weekly/Monthly)
 3. **Select topics** (up to 3)
-4. **Pick a voice** for narration
-5. **Configure music suite** for transitions
-6. **Click "Generate Podcast Prompt"**
-7. **Copy the prompt** and paste into Kimi Agent
+4. **Pick a voice** for narration (with audio preview)
+5. **Configure music suite** for transitions (with audio preview)
+6. **Set editorial perspective** (5-position bias slider)
+7. **Toggle editorial segment** (optional analysis section)
+8. **Click "Copy Podcast Prompt"**
+9. **Paste into Kimi Agent** to generate the podcast
 
 ---
 
@@ -141,7 +154,19 @@ https://github.com/atavist89-max/Ai-newsroom
 
 ## Changelog
 
-### Latest Updates
+### Latest Updates (April 18, 2026)
+- **Bias Selector** - 5-position editorial perspective slider (Extreme Left → Extreme Right)
+- **Editorial Segment Toggle** - Optional conditional editorial analysis section
+- **Bias Definition Panel** - Shows perspective details below the slider
+- **News Sources in Summary** - Configuration summary now displays country & continent news sources
+- **Voice & Music Previews** - Play/Pause buttons to preview voices and music styles
+- **Interactive Map Restored** - Country highlighted green, continent highlighted yellow, auto-pan/zoom
+- **Full World Country List** - Restored from 51 to 196 countries with flag emojis
+- **Searchable Country Dropdown** - Mobile-optimized autocomplete with live filtering
+- **Fact Checker Fix** - Replaced hardcoded "yesterday" with dynamic coverage period respecting timeframe selection
+- **Music Suite State Fix** - Dropdowns now properly update music selection
+
+### Previous Updates
 - Audio Producer: Mandarin TTS now mandatory in STEP 2
 - Audio Producer: Added rule - music and narration must NEVER overlap
 - Removed non-functional download button
