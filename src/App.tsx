@@ -10,6 +10,7 @@ import { voices } from './data/voices';
 import { musicStyles, defaultMusicSuite } from './data/music';
 import { biasOptions, biasAgent1Instructions, biasEditorialGuidelines } from './data/bias';
 import { BiasSelector } from './components/BiasSelector';
+import { CountryMap } from './components/CountryMap';
 import type { Country, Continent, Timeframe, Topic as TopicType, Voice, MusicSuite, BiasPosition, MusicStyle } from './types';
 
 function cn(...inputs: ClassValue[]) {
@@ -891,6 +892,7 @@ ${biasEditorialGuidelines[config.bias]}
                   <span>•</span>
                   <span>{selectedCountry.newsSources.length} news sources</span>
                 </div>
+                <CountryMap selectedCountry={selectedCountry} selectedContinent={selectedContinent} />
               </div>
             </Section>
 
