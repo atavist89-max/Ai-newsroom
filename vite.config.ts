@@ -6,6 +6,7 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'ai-newsroom',
+    emptyOutDir: false,
   },
   plugins: [react()],
   resolve: {
