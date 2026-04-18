@@ -1,8 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { Toaster, toast } from 'sonner';
 import { Mic2, Music, Globe, Clock, FileText, Copy, Check, Radio, Newspaper, Scale, Play, Pause } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from './lib/utils';
 import { countries, continents } from './data/countries';
 import { timeframes } from './data/timeframes';
 import { topics } from './data/topics';
@@ -11,11 +10,8 @@ import { musicStyles, defaultMusicSuite } from './data/music';
 import { biasOptions, biasAgent1Instructions, biasEditorialGuidelines } from './data/bias';
 import { BiasSelector } from './components/BiasSelector';
 import { CountryMap } from './components/CountryMap';
+import { CountrySearch } from './components/CountrySearch';
 import type { Country, Continent, Timeframe, Topic as TopicType, Voice, MusicSuite, BiasPosition, MusicStyle } from './types';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 function App() {
   // Selection states
@@ -873,20 +869,7 @@ ${biasEditorialGuidelines[config.bias]}
             {/* Geographic Selection */}
             <Section icon={Globe} title="Geographic Selection">
               <div className="space-y-3">
-                <select
-                  value={selectedCountry.code}
-                  onChange={(e) => {
-                    const country = countries.find(c => c.code === e.target.value);
-                    if (country) handleCountrySelect(country);
-                  }}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm"
-                >
-                  {countries.map(country => (
-                    <option key={country.code} value={country.code}>
-                      {country.name} ({country.language})
-                    </option>
-                  ))}
-                </select>
+                <CountrySearch value={selectedCountry} onChange={handleCountrySelect} />
                 <div className="flex items-center gap-2 text-sm text-slate-400">
                   <span>Continent: {selectedContinent.name}</span>
                   <span>•</span>
