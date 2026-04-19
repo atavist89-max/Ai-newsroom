@@ -57,7 +57,7 @@ export interface MusicSuite {
   blockSting: MusicStyle;
 }
 
-export type Topic = 'General News' | 'Politics' | 'Economy' | 'Entertainment' | 'Sport' | 'Society' | 'Technology';
+export type Topic = 'General News' | 'Politics' | 'Economy' | 'Entertainment' | 'Sport' | 'Society' | 'Technology' | 'Crime';
 
 export type BiasPosition = 'extreme-left' | 'moderate-left' | 'moderate' | 'moderate-right' | 'extreme-right';
 

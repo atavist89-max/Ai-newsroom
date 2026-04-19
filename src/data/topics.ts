@@ -7,7 +7,8 @@ export const availableTopics: Topic[] = [
   'Politics',
   'Society',
   'Sport',
-  'Technology'
+  'Technology',
+  'Crime'
 ];
 
 export const topicSearchTerms: Record<string, Record<Topic, string>> = {
@@ -18,7 +19,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politics',
     'Society': 'society',
     'Sport': 'sport',
-    'Technology': 'technology'
+    'Technology': 'technology',
+    'Crime': 'crime'
   },
   'Swedish': {
     'General News': 'nyheter',
@@ -27,7 +29,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politik',
     'Society': 'samhalle',
     'Sport': 'sport',
-    'Technology': 'teknik'
+    'Technology': 'teknik',
+    'Crime': 'brott'
   },
   'Spanish': {
     'General News': 'noticias',
@@ -36,7 +39,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politica',
     'Society': 'sociedad',
     'Sport': 'deportes',
-    'Technology': 'tecnologia'
+    'Technology': 'tecnologia',
+    'Crime': 'crimen'
   },
   'German': {
     'General News': 'nachrichten',
@@ -45,7 +49,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politik',
     'Society': 'gesellschaft',
     'Sport': 'sport',
-    'Technology': 'technologie'
+    'Technology': 'technologie',
+    'Crime': 'kriminalitat'
   },
   'French': {
     'General News': 'actualites',
@@ -54,7 +59,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politique',
     'Society': 'societe',
     'Sport': 'sport',
-    'Technology': 'technologie'
+    'Technology': 'technologie',
+    'Crime': 'crime'
   },
   'Portuguese': {
     'General News': 'noticias',
@@ -63,7 +69,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politica',
     'Society': 'sociedade',
     'Sport': 'esportes',
-    'Technology': 'tecnologia'
+    'Technology': 'tecnologia',
+    'Crime': 'crime'
   },
   'Italian': {
     'General News': 'notizie',
@@ -72,7 +79,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politica',
     'Society': 'societa',
     'Sport': 'sport',
-    'Technology': 'tecnologia'
+    'Technology': 'tecnologia',
+    'Crime': 'crimine'
   },
   'Dutch': {
     'General News': 'nieuws',
@@ -81,7 +89,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politiek',
     'Society': 'maatschappij',
     'Sport': 'sport',
-    'Technology': 'technologie'
+    'Technology': 'technologie',
+    'Crime': 'misdaad'
   },
   'Russian': {
     'General News': 'novosti',
@@ -90,7 +99,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politika',
     'Society': 'obshchestvo',
     'Sport': 'sport',
-    'Technology': 'tekhnologii'
+    'Technology': 'tekhnologii',
+    'Crime': 'prestuplenie'
   },
   'Arabic': {
     'General News': 'akhbar',
@@ -99,7 +109,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'siyasa',
     'Society': 'mujtama',
     'Sport': 'riyada',
-    'Technology': 'tiknulujia'
+    'Technology': 'tiknulujia',
+    'Crime': 'jarima'
   },
   'Japanese': {
     'General News': 'nyusu',
@@ -108,7 +119,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'seiji',
     'Society': 'shakai',
     'Sport': 'supotsu',
-    'Technology': 'gijutsu'
+    'Technology': 'gijutsu',
+    'Crime': 'hanzai'
   },
   'Chinese': {
     'General News': 'xinwen',
@@ -117,7 +129,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'zhengzhi',
     'Society': 'shehui',
     'Sport': 'tiyu',
-    'Technology': 'keji'
+    'Technology': 'keji',
+    'Crime': 'fanzui'
   },
   'Korean': {
     'General News': 'nyuseu',
@@ -126,7 +139,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'jeongchi',
     'Society': 'sahoe',
     'Sport': 'seupocheu',
-    'Technology': 'giseul'
+    'Technology': 'giseul',
+    'Crime': 'beomjoe'
   },
   'Hindi': {
     'General News': 'samachar',
@@ -135,7 +149,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'rajniti',
     'Society': 'samaj',
     'Sport': 'khel',
-    'Technology': 'praudyogiki'
+    'Technology': 'praudyogiki',
+    'Crime': 'apradh'
   },
   'Turkish': {
     'General News': 'haberler',
@@ -144,7 +159,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'siyaset',
     'Society': 'toplum',
     'Sport': 'spor',
-    'Technology': 'teknoloji'
+    'Technology': 'teknoloji',
+    'Crime': 'suc'
   },
   'Persian': {
     'General News': 'akhbar',
@@ -153,7 +169,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'siyasat',
     'Society': 'jamee',
     'Sport': 'varzesh',
-    'Technology': 'fanavari'
+    'Technology': 'fanavari',
+    'Crime': 'jorm'
   },
   'Hebrew': {
     'General News': 'chadashot',
@@ -162,7 +179,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politika',
     'Society': 'chevra',
     'Sport': 'sport',
-    'Technology': 'tekhhnologiya'
+    'Technology': 'tekhhnologiya',
+    'Crime': 'pesha'
   },
   'Greek': {
     'General News': 'eidiseis',
@@ -171,7 +189,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'politiki',
     'Society': 'koinonia',
     'Sport': 'athlitismos',
-    'Technology': 'technologia'
+    'Technology': 'technologia',
+    'Crime': 'eglima'
   },
   'Polish': {
     'General News': 'wiadomosci',
@@ -180,7 +199,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'polityka',
     'Society': 'spoleczenstwo',
     'Sport': 'sport',
-    'Technology': 'technologia'
+    'Technology': 'technologia',
+    'Crime': 'przestepstwo'
   },
   'Ukrainian': {
     'General News': 'novyny',
@@ -189,7 +209,8 @@ export const topicSearchTerms: Record<string, Record<Topic, string>> = {
     'Politics': 'polityka',
     'Society': 'suspilstvo',
     'Sport': 'sport',
-    'Technology': 'tekhnologii'
+    'Technology': 'tekhnologii',
+    'Crime': 'zlochyn'
   }
 };
 
