@@ -79,3 +79,12 @@ export interface GeneratedPrompt {
     wordCount: number;
   };
 }
+
+export type ApiProvider = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'custom';
+
+export interface ApiConfig {
+  provider: ApiProvider;
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+}
