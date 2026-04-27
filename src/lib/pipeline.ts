@@ -205,9 +205,9 @@ export class PipelineRunner {
   private getNextStage(current: StageId, metadata: unknown): StageId | 'COMPLETE' {
     if (!metadata || typeof metadata !== 'object') {
       // Fallback: just proceed linearly
-      const flow: StageId[] = ['agent1', 'gate1', 'agent3', 'gate2', 'agent5', 'gate3'];
+      const flow: StageId[] = ['agent1', 'gate1', 'agent3', 'gate2', 'agent5', 'gate3', 'agent6'];
       const idx = flow.indexOf(current);
-      if (idx === flow.length - 1) return 'COMPLETE';
+      if (idx === -1 || idx === flow.length - 1) return 'COMPLETE';
       return flow[idx + 1];
     }
 
