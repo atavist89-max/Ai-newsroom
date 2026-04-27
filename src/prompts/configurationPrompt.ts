@@ -59,7 +59,9 @@ print(f"Coverage period: {earliest_date} to {today}")
 Configuration 
 - **Country**: ${country.name} 
 - **Local Language**: ${country.language} 
+- **Country News Sources**: ${country.newsSources.join(', ')}
 - **Continent**: ${continent.name} 
+- **Continent News Sources**: ${continent.newsSources.map(s => s.name).join(', ')}
 - **Timeframe**: ${timeframeConfig.label} (past ${timeframeConfig.days} day${timeframeConfig.days > 1 ? 's' : ''}) — Coverage period: ${earliestDate} to ${today}
 - **Topics**: ${topics.join(', ')} 
 - **Voice**: ${voice.label} 
