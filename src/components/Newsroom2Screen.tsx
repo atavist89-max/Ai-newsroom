@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
-import { Mic2, Music, Globe, Clock, Check, Radio, Newspaper, Scale, Play, Pause, Loader2, Zap, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Mic2, Music, Globe, Clock, Check, Radio, Newspaper, Scale, Play, Pause, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { continents } from '../data/countries';
 import { timeframes } from '../data/timeframes';
@@ -11,11 +11,18 @@ import { biasOptions, biasAgent1Instructions } from '../data/bias';
 import { BiasSelector } from './BiasSelector';
 import { CountryMap } from './CountryMap';
 import { CountrySearch } from './CountrySearch';
-import { loadApiConfig, streamLLM } from '../lib/apiConfig';
-import { buildConfigurationPrompt } from '../prompts/configurationPrompt';
+import { loadApiConfig } from '../lib/apiConfig';
+import { buildSessionConfig } from '../lib/sessionConfig';
+import type { SessionConfig } from '../lib/sessionConfig';
+import PipelinePanel from './pipeline/PipelinePanel';
 import type { Country, Continent, Timeframe, Topic as TopicType, Voice, MusicSuite, BiasPosition, MusicStyle } from '../types';
 
-export default function Newsroom2Screen() {
+interface Newsroom2ScreenProps {
+  sessionContext: SessionConfig | null;
+  onSessionContextChange: (ctx: SessionConfig | null) => void;
+}
+
+export default function Newsroom2Screen({ sessionContext: _sessionContext, onSessionContextChange }: Newsroom2ScreenProps) {
   // Selection states (identical to Newsroom)
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [selectedContinent, setSelectedContinent] = useState<Continent>(Object.values(continents)[0]);
@@ -32,13 +39,6 @@ export default function Newsroom2Screen() {
   const voiceAudioRef = useRef<HTMLAudioElement | null>(null);
   const musicAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // LLM output state (new)
-  const [llmOutput, setLlmOutput] = useState('');
-  const [llmReasoning, setLlmReasoning] = useState('');
-  const [hasReasoning, setHasReasoning] = useState(false);
-  const [isRunning, setIsRunning] = useState(false);
-  const [runError, setRunError] = useState<string | null>(null);
-  const [showReasoning, setShowReasoning] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(true);
 
   // Check API key on mount
@@ -47,6 +47,11 @@ export default function Newsroom2Screen() {
       setHasApiKey(!!config.apiKey.trim());
     });
   }, []);
+
+  // Clear session context whenever configuration changes
+  useEffect(() => {
+    onSessionContextChange(null);
+  }, [selectedCountry, selectedContinent, selectedTimeframe, selectedTopics, selectedVoice, selectedBias, includeEditorialSegment, onSessionContextChange]);
 
 
 
@@ -133,30 +138,8 @@ export default function Newsroom2Screen() {
     }
   }, [playingMusic]);
 
-  // Run Agent handler
-  const handleRunAgent = useCallback(async () => {
-    if (!selectedCountry) {
-      toast.error('Please select a country first');
-      return;
-    }
-
-    setIsRunning(true);
-    setRunError(null);
-    setLlmOutput('');
-    setLlmReasoning('');
-    setHasReasoning(false);
-    setShowReasoning(false);
-
-    try {
-      const apiConfig = await loadApiConfig();
-      if (!apiConfig.apiKey.trim()) {
-        setRunError('No API key configured. Go to Configure API and add your key.');
-        toast.error('No API key configured');
-        setIsRunning(false);
-        return;
-      }
-
-      const prompt = buildConfigurationPrompt({
+  const sessionConfig = selectedCountry
+    ? buildSessionConfig({
         country: selectedCountry,
         continent: selectedContinent,
         timeframe: selectedTimeframe,
@@ -164,33 +147,9 @@ export default function Newsroom2Screen() {
         voice: selectedVoice,
         bias: selectedBias,
         includeEditorialSegment,
-      });
-
-      await streamLLM(apiConfig, prompt, {
-        onReasoningChunk: (chunk) => {
-          setLlmReasoning((prev) => prev + chunk);
-          setHasReasoning(true);
-        },
-        onContentChunk: (chunk) => {
-          setLlmOutput((prev) => prev + chunk);
-        },
-        onError: (err) => {
-          setRunError(err.message);
-          toast.error(`Agent failed: ${err.message}`);
-          setIsRunning(false);
-        },
-        onDone: () => {
-          setIsRunning(false);
-          toast.success('Agent completed!');
-        },
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setRunError(message);
-      toast.error(`Agent failed: ${message}`);
-      setIsRunning(false);
-    }
-  }, [selectedCountry, selectedContinent, selectedTimeframe, selectedTopics, selectedVoice, selectedBias, includeEditorialSegment]);
+        musicSuite: selectedMusicSuite,
+      })
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -457,16 +416,6 @@ export default function Newsroom2Screen() {
               </div>
             </div>
 
-            {/* Run Agent Button */}
-            <button
-              onClick={handleRunAgent}
-              disabled={isRunning || !selectedCountry}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isRunning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-              {isRunning ? 'Running Agent...' : 'Run Agent'}
-            </button>
-
             {!hasApiKey && (
               <div className="flex items-center gap-2 px-3 py-2 bg-amber-900/20 border border-amber-500/30 rounded-lg text-amber-300 text-xs">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -474,60 +423,14 @@ export default function Newsroom2Screen() {
               </div>
             )}
 
-            {/* Error */}
-            {runError && (
-              <div className="flex items-start gap-3 px-4 py-3 bg-red-900/20 border border-red-500/30 rounded-lg text-red-300">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <div className="font-medium">Agent failed</div>
-                  <div className="text-red-400/80">{runError}</div>
-                </div>
+            {/* Pipeline Panel */}
+            {sessionConfig ? (
+              <PipelinePanel sessionConfig={sessionConfig} />
+            ) : (
+              <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4 text-center text-sm text-slate-500">
+                Select a country to run the pipeline
               </div>
             )}
-
-            {/* LLM Output */}
-            <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
-                <span className="text-sm font-medium text-slate-300">Agent Output</span>
-                {isRunning && (
-                  <span className="text-xs text-blue-400 flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Running...
-                  </span>
-                )}
-              </div>
-
-              {/* Reasoning Chain */}
-              {hasReasoning && (
-                <div className="border-b border-slate-700">
-                  <button
-                    onClick={() => setShowReasoning(prev => !prev)}
-                    className="w-full flex items-center justify-between px-4 py-2 bg-slate-800/50 hover:bg-slate-800 transition-colors"
-                  >
-                    <span className="text-xs font-medium text-purple-300">Reasoning Chain</span>
-                    {showReasoning ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                  </button>
-                  {showReasoning && (
-                    <pre className="p-4 text-xs text-purple-300/80 overflow-auto max-h-[300px] whitespace-pre-wrap bg-slate-950/30">
-                      {llmReasoning}
-                    </pre>
-                  )}
-                </div>
-              )}
-
-              {/* Main Response */}
-              <div className="p-4">
-                {llmOutput ? (
-                  <pre className="text-sm text-slate-300 overflow-auto max-h-[600px] whitespace-pre-wrap font-sans">
-                    {llmOutput}
-                  </pre>
-                ) : (
-                  <div className="text-sm text-slate-500 text-center py-8">
-                    {isRunning ? 'Waiting for agent response...' : 'Click Run Agent to generate output'}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </main>

@@ -10,11 +10,11 @@ The app is built as a self-contained Android APK using Capacitor. All web assets
 
 ## Screens
 
-The app has two main screens, switched via a full-width tab bar at the top:
+The app has three main screens, switched via a full-width tab bar at the top:
 
-### Newsroom
+### Newsroom 2 (Pipeline)
 
-Configure your podcast and run the LLM agent:
+Configure your podcast and run the full agent pipeline:
 
 - **Geographic Selection** — Searchable dropdown with 196 countries, flag emojis, and an interactive map
 - **Timeframe** — Daily Briefing, Weekly Review, or Monthly Roundup
@@ -22,11 +22,12 @@ Configure your podcast and run the LLM agent:
 - **Voice Selection** — 4 professional narrator voices with Play/Pause audio previews
 - **Music Suite** — Customize intro, outro, story stings, and block transitions with audio previews
 - **Editorial Settings** — 5-position bias slider (Extreme Left → Extreme Right) with live definition panel
-- **Run Agent** — Sends your full configuration to the connected LLM
-- **Agent Output** — Scrollable window showing the LLM response token-by-token in real time via SSE streaming
-- **Reasoning Chain** — Auto-appears when the model returns reasoning (e.g., DeepSeek R1), stays collapsed until you click to expand
+- **Run Full Pipeline** — Executes all 6 agent stages automatically
+- **Horizontal Stage Strip** — Mobile-optimized horizontal scrollable strip showing all pipeline stages at a glance
+- **Per-Stage Detail** — Tap any stage to expand its reasoning chain and output
+- **Real-Time Progress** — Visual active/inactive indicators with loop counters
 
-The **Configuration Prompt** is stored in a dedicated file (`src/prompts/configurationPrompt.ts`) for easy editing. It includes a Python date-range calculation and your complete configuration: country, local language, country news sources, continent, continent news sources, timeframe, topics, voice, editorial perspective, and editorial segment toggle.
+The **Configuration Prompt** is generated as structured JSON (`SessionConfig`) for the pipeline. All date calculations happen in TypeScript — no token-wasting Python blocks.
 
 ### Configure API
 
@@ -39,9 +40,20 @@ Set up and persist your LLM provider credentials:
 - **Save Configuration** — Stored in native Android `SharedPreferences` (survives restarts and updates)
 - **Test Connection** — Verifies your key works with a minimal ping
 
-### Fallback Prompt Generator
+### Newsroom (Legacy)
 
-The app also retains the original prompt generator as a fallback. If you prefer to copy the agent swarm prompt and run it in an external LLM interface, that functionality is still available behind the **Newsroom** screen's legacy flow.
+The original prompt generator is retained as a fallback. Configure your podcast and copy the full agent swarm prompt to run in an external LLM interface. If a pipeline run has produced session context, the legacy prompt will prepend it automatically.
+
+### Configure API
+
+Set up and persist your LLM provider credentials:
+
+- **API Provider** — OpenAI, Anthropic, Google Gemini, OpenRouter, or Custom/Local
+- **API Key** — Password-protected input with reveal toggle
+- **Base URL** (optional) — For proxies, local models (Ollama), or Azure OpenAI
+- **Model** — Chat completion model identifier (e.g., `gpt-4o`, `claude-3-5-sonnet`)
+- **Save Configuration** — Stored in native Android `SharedPreferences` (survives restarts and updates)
+- **Test Connection** — Verifies your key works with a minimal ping
 
 ---
 
@@ -135,13 +147,14 @@ The generated prompt orchestrates 6 AI agents working together:
 - Auto-selects top stories based on relevance and diversity
 
 ### Agent 2: The Editor (Quality Gate)
-Reviews scripts for:
+Runs **twice**: Phase 1 after Agent 1, and Final Check after Agent 4. Uses the same mandatory checklist both times:
 - BBC broadcast standards
 - Story completeness (1500+ characters minimum)
 - International audience understanding
 - Term definitions and context
 - 5 Ws + How coverage
 - Sentence length distribution (60% between 15-30 words)
+- Produces structured JSON audit report with per-story/per-rule status
 
 ### Agent 3: The Writer
 - Polishes scripts for active voice
@@ -151,17 +164,19 @@ Reviews scripts for:
 
 ### Agent 4: Fact Checker
 - Verifies all claims against multiple sources
-- Flags factual inaccuracies
-- Triggers replacement story search if needed
+- Produces structured `news_fact_check.json` report
+- Triggers Agent 5 if `overall_status: ISSUES_FOUND`
 
 ### Agent 5: Researcher (Conditional)
-- Only activated if fact-check fails
-- Finds replacement stories from the correct coverage period
+- Only activated if Agent 4 reports issues
+- Produces `recovery_actions.json` with writer instructions
+- Returns fixes to Agent 3 for re-integration
 
-### Agent 6: Audio Producer
-- Generates narration using the selected voice
-- Mixes music with narration (music and narration never overlap)
-- Produces final MP3
+### Agent 6: Audio Producer (Deferred)
+- Will generate narration using the selected voice
+- Will mix music with narration (music and narration never overlap)
+- Will produce final MP3
+- **Not yet implemented** — deferred to future sprints
 
 ---
 
@@ -183,9 +198,10 @@ Every story must meet these criteria:
 ## Usage
 
 1. **Configure your API** — Go to Configure API, select your provider, enter your API key and model, then save and test
-2. **Go to Newsroom** — Select a country, timeframe, topics, voice, music, and editorial perspective
-3. **Run Agent** — Tap the Run Agent button to send your configuration to the LLM
-4. **View Output** — Watch the Agent Output window for the LLM's response
+2. **Go to Newsroom 2** — Select a country, timeframe, topics, voice, music, and editorial perspective
+3. **Run Full Pipeline** — Tap the Run Full Pipeline button to execute all 6 agent stages automatically
+4. **Monitor Progress** — Watch the horizontal stage strip for real-time status. Tap any stage to view its reasoning and output.
+5. **Copy Legacy Prompt** — Or go to Newsroom to copy the full agent swarm prompt for external use
 
 ---
 
@@ -273,17 +289,17 @@ https://github.com/atavist89-max/Ai-newsroom
 ## Changelog
 
 ### Current Release
-- **Real-Time SSE Streaming** — LLM response streams token-by-token via Server-Sent Events; no more waiting for the full response
-- **Editable Configuration Prompt** — Prompt template lives in `src/prompts/configurationPrompt.ts` for easy editing
-- **Live LLM Integration** — Newsroom screen connects directly to your configured LLM provider
-- **Run Agent** — One-tap agent execution with loading and error states
-- **Agent Output Window** — Real-time LLM response display as tokens arrive
-- **Reasoning Chain** — Auto-appears when the model returns reasoning, stays collapsed until you expand it
+- **Pipeline Orchestration** — Full 6-agent workflow runner with state machine, retry logic, and loop tracking
+- **Horizontal Stage Strip** — Mobile-optimized horizontal scrollable strip showing all pipeline stages with active/inactive indicators
+- **Per-Stage Reasoning & Output** — Each agent has its own collapsible reasoning chain and output panel
+- **Configurable Stub Agents** — All 6 agent slots use swappable stubs for $0-cost pipeline testing
+- **SessionConfig JSON** — TypeScript-computed configuration context (no Python blocks), passed between agents
+- **Completeness Requirements** — Story rules and editor audit checklist extracted to `src/prompts/shared/completenessRequirements.ts`
+- **Real-Time SSE Streaming** — LLM response streams token-by-token via Server-Sent Events
 - **Configure API** — Provider selector, API key, base URL, model input with persistent storage
-- **Tab Navigation** — Full-width top tabs switching between Newsroom and Configure API
+- **Tab Navigation** — Full-width top tabs switching between Newsroom, Newsroom 2, and Configure API
 - **Native Persistence** — API credentials stored in Android SharedPreferences via Capacitor Preferences
 - **OpenAI-Compatible API** — Universal chat completions format for broad provider support
-- **Dynamic Agent Prompt** — STEP 0 date range + country/continent news sources + full configuration summary sent to LLM
 - **Self-Contained APK** — All assets bundled via Capacitor, no external server needed
 - **GitHub Action Builds** — Automated APK generation on every push
 

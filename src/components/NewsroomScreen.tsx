@@ -8,12 +8,18 @@ import { topics } from '../data/topics';
 import { voices } from '../data/voices';
 import { musicStyles, defaultMusicSuite } from '../data/music';
 import { biasOptions, biasAgent1Instructions, biasEditorialGuidelines } from '../data/bias';
+import { formatSessionContextForLLM } from '../lib/sessionConfig';
+import type { SessionConfig } from '../lib/sessionConfig';
 import { BiasSelector } from './BiasSelector';
 import { CountryMap } from './CountryMap';
 import { CountrySearch } from './CountrySearch';
 import type { Country, Continent, Timeframe, Topic as TopicType, Voice, MusicSuite, BiasPosition, MusicStyle } from '../types';
 
-export default function NewsroomScreen() {
+interface NewsroomScreenProps {
+  sessionConfig?: SessionConfig | null;
+}
+
+export default function NewsroomScreen({ sessionConfig }: NewsroomScreenProps) {
   // Selection states
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [selectedContinent, setSelectedContinent] = useState<Continent>(Object.values(continents)[0]);
@@ -36,7 +42,7 @@ export default function NewsroomScreen() {
     if (!selectedCountry) {
       return 'Select a country to generate the podcast prompt...';
     }
-    return generateAgentSwarmPrompt({
+    const basePrompt = generateAgentSwarmPrompt({
       country: selectedCountry,
       continent: selectedContinent,
       timeframe: selectedTimeframe,
@@ -46,7 +52,12 @@ export default function NewsroomScreen() {
       bias: selectedBias,
       includeEditorialSegment
     });
-  }, [selectedCountry, selectedContinent, selectedTimeframe, selectedTopics, selectedVoice, selectedMusicSuite, selectedBias, includeEditorialSegment]);
+    if (sessionConfig) {
+      const ctxBlock = formatSessionContextForLLM(sessionConfig);
+      return `${ctxBlock}\n\n---\n\n${basePrompt}`;
+    }
+    return basePrompt;
+  }, [selectedCountry, selectedContinent, selectedTimeframe, selectedTopics, selectedVoice, selectedMusicSuite, selectedBias, includeEditorialSegment, sessionConfig]);
 
   // Handle country selection
   const handleCountrySelect = useCallback((country: Country) => {
