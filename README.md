@@ -25,14 +25,14 @@ You configure:
 Then you hit **Run Full Pipeline**. Seven AI agents go to work:
 
 1. **Researcher** — Queries Brave Search for real local news across your 3 topics, groups results by theme, and writes the first draft script with music cues and editorial framing
-2. **Editor (Phase 1)** — Checks for theme completeness, cross-theme coherence, and professional broadcast standards
-3. **Writer** — Polishes the script for active voice, oral readability, and narrative flow
+2. **Editor (Phase 1)** — Evaluates all 6 themes (3 local + 3 continent) plus the optional editorial segment against 19 structured rules: length, developments, sentence structure, term definitions, source attribution, geography correctness, transitions, coherence, and bias consistency. Returns a per-theme PASS/FAIL audit.
+3. **Writer** — Receives the editor's `rewriter_instructions` and polishes the script. Skipped entirely if the editor gives a clean approval with zero feedback.
 4. **Fact Checker** — Verifies every claim against independent sources
 5. **Researcher (Fix)** — If facts fail, finds replacements and provides repair instructions
 6. **Editor (Final)** — Gives the final approval gate before audio production
 7. **Audio Producer** — Generates narration with the selected voice, mixes music stings, and assembles the final MP3
 
-Each agent streams its reasoning in real time. You can tap any stage to see exactly what it's thinking, the **full prompt** that was sent to the LLM, and what it produced. For the Researcher, the **first draft** is saved as a separate artifact you can inspect before it goes to the Editor. If an editor rejects a theme, you see the specific rule that failed and why — the writer gets that feedback, fixes it, and resubmits. The pipeline loops until everything passes.
+Each agent streams its reasoning in real time. You can tap any stage to see exactly what it's thinking, the **full prompt** that was sent to the LLM, the **first draft** (for the Researcher), and the **structured audit** (for Editors). If an editor rejects a theme, you see the specific rule that failed and why — the writer gets that feedback, fixes it, and resubmits. The pipeline loops until everything passes.
 
 **This is not a chatbot. This is a production pipeline.**
 
@@ -46,16 +46,15 @@ The AI Newsroom pipeline is a state machine that orchestrates six specialized ag
 Researcher
     ↓
 Editor (Phase 1)
-    ↓ Approved          ↓ Rejected
-    ↓                   └──────────→ back to Researcher
-Writer
-    ↓
+    ↓ Approved, no notes     ↓ Has feedback / Rejected
+    ↓                        └──────────→ Writer
+    ↓ (skips Writer)
 Fact Checker
-    ↓ PASS              ↓ ISSUES_FOUND
-    ↓                   └──────────→ Fixer → back to Writer
+    ↓ PASS                   ↓ ISSUES_FOUND
+    ↓                        └──────────→ Fixer → back to Writer
 Editor (Final)
-    ↓ APPROVED          ↓ REJECTED
-    ↓                   └──────────→ back to Writer
+    ↓ APPROVED               ↓ REJECTED
+    ↓                        └──────────→ back to Writer
 Audio Producer
     ↓
    ✅ COMPLETE
@@ -80,7 +79,7 @@ interface AgentOutput {
 ```
 
 Gates (Editor and Fact Checker) return structured JSON:
-- **Editor** → `AuditResult` with per-theme/per-rule PASS/FAIL status and `rejection_reason` for every failure
+- **Editor** → `AuditResult` with per-theme/per-rule PASS/FAIL status, `rejection_reason` for every failure, and `has_feedback` flag. If `has_feedback` is false, the Writer stage is skipped entirely.
 - **Fact Checker** → `FactCheckResult` with per-theme grades and `overall_status: PASS | ISSUES_FOUND`
 - **Fixer** → `RecoveryResult` with `writer_instructions` for the Writer to apply
 
@@ -123,9 +122,10 @@ The Researcher is explicitly instructed to **prioritize the country's listed new
 The pipeline UI is designed for phones:
 
 - **Vertical stage strip** — A scrollable column of compact stage cards on the left. Each shows an icon, short name, and status dot. Active stages pulse. Completed stages show green checks. Rejected stages show amber warnings.
-- **Tap to inspect** — Tap any stage to expand its reasoning chain, the **full LLM prompt**, the **first draft** (for the Researcher), and output below
+- **Tap to inspect** — Tap any stage to expand its reasoning chain, the **full LLM prompt**, the **first draft** (for the Researcher), the **structured audit** (for Editors), and output below
 - **Loop counters** — Badges show when a stage has run multiple times (×2, ×3...)
 - **Real-time streaming** — Reasoning tokens stream in as agents think, just like watching a live terminal
+- **StageDetail tabs** — Articles (Agent 1 only), Stream (live reasoning), Agent Output (parsed first draft), Audit (Editor gates — per-theme PASS/FAIL), Prompt (full LLM prompt)
 
 ---
 
@@ -177,10 +177,11 @@ Everything bundles into the APK. No external web server. No cloud backend. The a
 │   ├── agents/               # Agent implementations
 │   │   ├── agent1.ts         # News Researcher — real Brave Search + LLM implementation
 │   │   ├── agent1Parse.ts    # Output parser for Agent 1 (6 theme sections)
+│   │   ├── gate1.ts          # Editor Phase 1 — real LLM audit with structured JSON output
+│   │   ├── gate1Parse.ts     # JSON parser for Editor audit results
 │   │   ├── stubs/            # Configurable stub agents for pipeline testing
 │   │   │   ├── agent3Stub.ts
 │   │   │   ├── agent5Stub.ts
-│   │   │   ├── gate1Stub.ts
 │   │   │   ├── gate2Stub.ts
 │   │   │   ├── gate3Stub.ts
 │   │   │   └── stubConfig.ts
@@ -214,6 +215,7 @@ Everything bundles into the APK. No external web server. No cloud backend. The a
 │   │   └── utils.ts
 │   ├── prompts/
 │   │   ├── agent1.ts         # Agent 1 prompt builder — injects SessionConfig + requirements + bias
+│   │   ├── gate1.ts          # Editor prompt builder — per-theme audit criteria + editorial segment checks
 │   │   └── shared/           # Permanent, session-independent prompt building blocks
 │   │       └── completenessRequirements.ts
 │   ├── App.tsx               # Main application component with tab router
@@ -248,7 +250,7 @@ Everything bundles into the APK. No external web server. No cloud backend. The a
 1. **Configure your APIs** — Go to Configure API, add your LLM provider key AND your Brave Search API key, save and test both
 2. **Configure your podcast** — Go to Newsroom 2, pick a country, timeframe, **exactly 3 topics**, voice, music, and editorial angle
 3. **Run Full Pipeline** — Tap the button and watch the agents work
-4. **Inspect stages** — Tap any stage card to see reasoning, the full LLM prompt, the first draft, and output
+4. **Inspect stages** — Tap any stage card to see reasoning, the full LLM prompt, the first draft, the structured audit, and output
 
 ---
 
