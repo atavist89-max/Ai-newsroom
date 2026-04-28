@@ -17,8 +17,14 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onPause() {
-        // Don't pause WebView timers — let JavaScript keep running when app backgrounds
-        Log.d(TAG, "onPause — skipping pauseTimers to keep JS running");
         super.onPause();
+        // BridgeActivity.onPause() pauses WebView timers, stopping all JS execution
+        // (setTimeout, fetch, SSE parsing). The foreground service keeps the process
+        // alive but the WebView itself is frozen. Resume timers immediately so the
+        // pipeline continues running when the app is backgrounded.
+        if (bridge != null && bridge.getWebView() != null) {
+            bridge.getWebView().resumeTimers();
+            Log.d(TAG, "onPause — resumed WebView timers for background execution");
+        }
     }
 }

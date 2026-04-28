@@ -2,6 +2,7 @@ import { registerPlugin } from '@capacitor/core';
 
 export interface PipelineServicePlugin {
   start(): Promise<{ success: boolean }>;
+  update(options: { status: string }): Promise<{ success: boolean }>;
   stop(): Promise<{ success: boolean }>;
 }
 
@@ -16,6 +17,15 @@ export const PipelineService = {
       isRunning = true;
     } catch (err) {
       console.warn('PipelineService.start failed:', err);
+    }
+  },
+
+  async update(status: string): Promise<void> {
+    if (!isRunning) return;
+    try {
+      await PipelineServiceNative.update({ status });
+    } catch (err) {
+      console.warn('PipelineService.update failed:', err);
     }
   },
 
