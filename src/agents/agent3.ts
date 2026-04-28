@@ -27,7 +27,7 @@ export function createAgent3(): AgentFn {
     let reasoning = '';
     const apiConfig = await loadApiConfig();
 
-    await streamLLM(apiConfig, prompt, {
+    const { diagnostics } = await streamLLM(apiConfig, prompt, {
       onReasoningChunk: (chunk) => {
         reasoning += chunk;
         onReasoningChunk(chunk);
@@ -49,6 +49,7 @@ export function createAgent3(): AgentFn {
       draft,
       reasoning,
       prompt,
+      metadata: { streamDiagnostics: diagnostics },
     };
   };
 }

@@ -17,6 +17,7 @@ interface Agent1Metadata {
   }>;
   sourcesUsed?: string[];
   fallbackUsed?: boolean;
+  streamDiagnostics?: string[];
 }
 
 interface StageDetailProps {
@@ -255,6 +256,8 @@ function PromptTab({ prompt }: { prompt: string }) {
 }
 
 function OutputTab({ stage, metadata }: { stage: StageRecord; metadata: Agent1Metadata | undefined }) {
+  const diagnostics = metadata?.streamDiagnostics ?? (stage.metadata as Record<string, unknown> | undefined)?.streamDiagnostics as string[] | undefined;
+
   if (stage.status === 'running') {
     return (
       <div className="p-4 text-sm text-slate-500 text-center">
@@ -263,19 +266,41 @@ function OutputTab({ stage, metadata }: { stage: StageRecord; metadata: Agent1Me
     );
   }
 
-  if (!metadata?.firstDraft) {
-    return (
-      <div className="p-4 text-sm text-slate-500 text-center">
-        No draft output yet.
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4">
-      <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[450px] overflow-auto leading-relaxed">
-        {metadata.firstDraft}
-      </pre>
+    <div className="p-4 space-y-3">
+      {metadata?.firstDraft ? (
+        <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[350px] overflow-auto leading-relaxed">
+          {metadata.firstDraft}
+        </pre>
+      ) : (
+        <div className="text-sm text-slate-500 text-center py-4">
+          No draft output.
+        </div>
+      )}
+
+      {diagnostics && diagnostics.length > 0 && (
+        <DiagnosticsSection diagnostics={diagnostics} />
+      )}
+    </div>
+  );
+}
+
+function DiagnosticsSection({ diagnostics }: { diagnostics: string[] }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="border border-slate-700/50 rounded bg-slate-950/30">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-3 py-2 text-[10px] font-medium text-amber-400 uppercase tracking-wide hover:bg-slate-800/30 transition-colors"
+      >
+        <span>Stream Diagnostics ({diagnostics.length} lines)</span>
+        <span className="text-slate-500">{expanded ? '▲' : '▼'}</span>
+      </button>
+      {expanded && (
+        <pre className="text-[10px] text-amber-300/80 whitespace-pre-wrap font-mono px-3 pb-3 max-h-[250px] overflow-auto">
+          {diagnostics.join('\n')}
+        </pre>
+      )}
     </div>
   );
 }
@@ -379,6 +404,11 @@ function AuditTab({ stage, audit }: { stage: StageRecord; audit: AuditResult | u
             {audit.rewriter_instructions}
           </pre>
         </div>
+      )}
+
+      {/* Stream Diagnostics */}
+      {Array.isArray((stage.metadata as Record<string, unknown> | undefined)?.streamDiagnostics) && (
+        <DiagnosticsSection diagnostics={(stage.metadata as Record<string, unknown>).streamDiagnostics as string[]} />
       )}
     </div>
   );

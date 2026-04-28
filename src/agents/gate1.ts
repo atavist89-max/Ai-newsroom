@@ -22,7 +22,7 @@ export function createGate1(): AgentFn {
     let reasoning = '';
     const apiConfig = await loadApiConfig();
 
-    await streamLLM(apiConfig, prompt, {
+    const { diagnostics } = await streamLLM(apiConfig, prompt, {
       onReasoningChunk: (chunk) => {
         reasoning += chunk;
         onReasoningChunk(chunk);
@@ -57,7 +57,7 @@ export function createGate1(): AgentFn {
       draft: currentDraft, // Editor does not rewrite — passes through unchanged
       reasoning,
       prompt,
-      metadata: auditResult,
+      metadata: { ...auditResult, streamDiagnostics: diagnostics },
     };
   };
 }

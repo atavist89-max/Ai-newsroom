@@ -2,8 +2,6 @@ import type { SessionConfig } from '../lib/sessionConfig';
 import { formatSessionContextForLLM } from '../lib/sessionConfig';
 import {
   THEME_COMPLETENESS_REQUIREMENTS,
-  EDITOR_COMPLETENESS_AUDIT,
-  COHERENCE_REQUIREMENTS,
 } from './shared/completenessRequirements';
 import { biasAgent1Instructions, biasEditorialGuidelines } from '../data/bias';
 import type { NewsArticle } from '../lib/newsSearch';
@@ -40,8 +38,6 @@ export function buildAgent1Prompt(
   topicGroups: TopicArticleGroup[]
 ): string {
   const completenessReqs = replacePlaceholders(THEME_COMPLETENESS_REQUIREMENTS, config);
-  const editorAudit = replacePlaceholders(EDITOR_COMPLETENESS_AUDIT, config);
-  const coherenceReqs = replacePlaceholders(COHERENCE_REQUIREMENTS, config);
   const biasInstructions = biasAgent1Instructions[config.editorial.biasId];
   const biasGuidelines = biasEditorialGuidelines[config.editorial.biasId];
 
@@ -83,6 +79,22 @@ ${biasGuidelines}`
 
   return `## ROLE
 You are a senior news producer and podcast scriptwriter for a professional international news podcast.
+
+## DRAFTING MINDSET (CRITICAL)
+You are writing a **FIRST DRAFT**, not a final script. Your sole job is to get the facts, narrative, and structure down.
+
+**DO NOT:**
+- Count characters, words, or sentences during writing
+- Stop to check if requirements are met
+- Self-edit, rewrite, or iterate on sentences
+- Verify source attribution or coherence while drafting
+
+**DO:**
+- Write freely and continuously
+- Include all required elements (transitions, definitions, forward-looking closes) as you go
+- Trust that the editor will catch issues — that's their job, not yours
+
+Write the draft in one continuous flow. Quality control happens in the next phase.
 
 ${formatSessionContextForLLM(config)}
 
@@ -141,10 +153,6 @@ Score each theme's source material 1-10 using professional news values:
 - If a topic has NO articles, use the fallback General News articles and explicitly state this
 
 ${completenessReqs}
-
-${editorAudit}
-
-${coherenceReqs}
 
 ## EDITORIAL PERSPECTIVE
 When writing the first draft, frame all facts through **${config.editorial.biasLabel}** perspective.

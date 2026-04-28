@@ -83,18 +83,28 @@ export async function streamLLM(
   config: ApiConfig,
   prompt: string,
   callbacks: StreamCallbacks
-): Promise<void> {
+): Promise<{ diagnostics: string[] }> {
   const url = config.baseUrl.trim()
     ? `${config.baseUrl.replace(/\/$/, '')}/chat/completions`
     : 'https://api.openai.com/v1/chat/completions';
 
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  const diagnostics: string[] = [];
+  let contentChunks = 0;
+  let reasoningChunks = 0;
+  let firstChunkLogged = false;
+  let finishReason: string | null = null;
+  let doneViaDone = false;
 
   const isKimi = /kimi/i.test(config.model);
+  const isReasoningModel = /kimi|deepseek|reasoning|thinking|r1/i.test(config.model);
   const requestBody: Record<string, unknown> = {
     model: config.model || 'gpt-4o',
     messages: [{ role: 'user', content: prompt }],
     stream: true,
+    // Reasoning models can burn 8000+ tokens on internal monologue before
+    // emitting content. Default limits (4096) are nowhere near enough.
+    max_tokens: isReasoningModel ? 24000 : 8000,
   };
   if (isKimi) {
     requestBody.thinking = { type: 'enabled' };
@@ -138,12 +148,23 @@ export async function streamLLM(
 
         const data = trimmed.slice(6);
         if (data === '[DONE]') {
+          diagnostics.push('[DONE] signal received');
           callbacks.onDone?.();
-          return;
+          doneViaDone = true;
+          return { diagnostics };
         }
 
         try {
           const chunk = JSON.parse(data);
+
+          // Log first chunk structure to diagnose field names
+          if (!firstChunkLogged) {
+            const choice0 = chunk.choices?.[0];
+            const deltaKeys = choice0?.delta ? Object.keys(choice0.delta) : [];
+            diagnostics.push(`First chunk delta keys: [${deltaKeys.join(', ')}]`);
+            firstChunkLogged = true;
+          }
+
           const choice = chunk.choices?.[0];
           const delta = choice?.delta;
           if (!delta) continue;
@@ -151,18 +172,31 @@ export async function streamLLM(
           // Reasoning tokens: check multiple field names used by different providers
           const reasoning = delta.reasoning_content || delta.reasoning || delta.thinking;
           if (reasoning) {
+            reasoningChunks++;
+            if (reasoningChunks <= 3) {
+              diagnostics.push(`REASONING #${reasoningChunks}: ${JSON.stringify(reasoning).slice(0, 200)}`);
+            }
             callbacks.onReasoningChunk?.(reasoning);
           }
 
           // Content tokens: emit even empty strings (some APIs use them as keep-alives)
           if (delta.content !== undefined && delta.content !== null) {
+            contentChunks++;
+            if (contentChunks <= 3) {
+              diagnostics.push(`CONTENT #${contentChunks}: ${JSON.stringify(delta.content).slice(0, 200)}`);
+            }
             callbacks.onContentChunk?.(delta.content);
+          }
+
+          if (choice?.finish_reason) {
+            finishReason = choice.finish_reason;
           }
 
           // Only finish if there's no more content/reasoning in this chunk
           if (choice?.finish_reason && !reasoning && !delta.content) {
             callbacks.onDone?.();
-            return;
+            doneViaDone = true;
+            return { diagnostics };
           }
         } catch {
           // ignore malformed JSON chunks
@@ -170,10 +204,16 @@ export async function streamLLM(
       }
     }
 
-    callbacks.onDone?.();
+    if (!doneViaDone) {
+      callbacks.onDone?.();
+    }
+    diagnostics.push(`Stream ended. Content chunks: ${contentChunks}, Reasoning chunks: ${reasoningChunks}, finish_reason: ${finishReason ?? 'none'}`);
+    return { diagnostics };
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err));
+    diagnostics.push(`ERROR: ${error.message}`);
     callbacks.onError?.(error);
+    throw error;
   } finally {
     reader?.cancel().catch(() => {});
   }
