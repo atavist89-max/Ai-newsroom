@@ -24,13 +24,15 @@ You configure:
 
 Then you hit **Run Full Pipeline**. Seven AI agents go to work:
 
-1. **Researcher** — Queries Brave Search for real local news across your 3 topics, groups results by theme, and writes the first draft script with music cues and editorial framing
-2. **Editor (Phase 1)** — Evaluates all 6 themes (3 local + 3 continent) plus the optional editorial segment against 19 structured rules: length, developments, sentence structure, term definitions, source attribution, geography correctness, transitions, coherence, and bias consistency. Returns a per-theme PASS/FAIL audit.
-3. **Writer** — Receives the editor's `rewriter_instructions` and polishes the script. Skipped entirely if the editor gives a clean approval with zero feedback.
-4. **Fact Checker** — Verifies every claim against independent sources
-5. **Researcher (Fix)** — If facts fail, finds replacements and provides repair instructions
-6. **Editor (Final)** — Gives the final approval gate before audio production
-7. **Audio Producer** — Generates narration with the selected voice, mixes music stings, and assembles the final MP3
+| # | Agent | Status | What It Does |
+|---|---|---|---|
+| 1 | **Researcher** | ✅ Real | Queries Brave Search for local + continent news across your 3 topics, builds the first draft script with music cues and editorial framing |
+| 2 | **Editor (Phase 1)** | ✅ Real | Evaluates all 6 themes + optional editorial segment against 19 structured rules. Returns per-theme PASS/FAIL audit with `rewriter_instructions` |
+| 3 | **Writer** | ✅ Real | Receives editor feedback, rewrites the full script preserving structure and cues. Goes back to Editor for re-evaluation |
+| 4 | **Fact Checker** | ⏳ Stub | Verifies every claim against independent sources |
+| 5 | **Researcher (Fix)** | ⏳ Stub | If facts fail, finds replacements and provides repair instructions |
+| 6 | **Editor (Final)** | ⏳ Stub | Gives the final approval gate before audio production |
+| 7 | **Audio Producer** | ⏳ Stub | Generates narration with the selected voice, mixes music stings, and assembles the final MP3 |
 
 Each agent streams its reasoning in real time. You can tap any stage to see exactly what it's thinking, the **full prompt** that was sent to the LLM, the **first draft** (for the Researcher), and the **structured audit** (for Editors). If an editor rejects a theme, you see the specific rule that failed and why — the writer gets that feedback, fixes it, and resubmits. The pipeline loops until everything passes.
 
@@ -40,25 +42,71 @@ Each agent streams its reasoning in real time. You can tap any stage to see exac
 
 ## The Pipeline
 
-The AI Newsroom pipeline is a state machine that orchestrates six specialized agents. It runs fully automatically, handles rejection loops without limits, and retries failed API calls up to 3 times before aborting.
+The AI Newsroom pipeline is a state machine that orchestrates seven specialized agents. It runs fully automatically, handles rejection loops without limits, and retries failed API calls up to 3 times before aborting.
 
 ```
-Researcher
-    ↓
-Editor (Phase 1)
-    ↓ Approved, no notes     ↓ Has feedback / Rejected
-    ↓                        └──────────→ Writer
-    ↓ (skips Writer)
-Fact Checker
-    ↓ PASS                   ↓ ISSUES_FOUND
-    ↓                        └──────────→ Fixer → back to Writer
-Editor (Final)
-    ↓ APPROVED               ↓ REJECTED
-    ↓                        └──────────→ back to Writer
-Audio Producer
-    ↓
-   ✅ COMPLETE
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           FULL PIPELINE FLOW                            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌─────────────┐
+    │  Researcher │  ← Queries Brave Search, writes first draft
+    │   (Agent 1) │
+    └──────┬──────┘
+           │
+           ▼
+    ┌─────────────┐
+    │   Editor    │  ← Evaluates 6 themes + editorial segment
+    │  (Phase 1)  │     Returns per-theme PASS/FAIL audit
+    │   (Gate 1)  │
+    └──────┬──────┘
+           │
+           ├────────────┬────────────────────────────────────┐
+           │            │                                    │
+           ▼            ▼ Has feedback / Rejected           │
+    ┌─────────────┐  ┌─────────────┐                        │
+    │   Fact      │  │   Writer    │  ← Rewrites per audit  │
+    │  Checker    │  │  (Agent 3)  │     feedback, then     │
+    │  (Gate 2)   │  └──────┬──────┘     returns to Editor   │
+    └──────┬──────┘         │            for re-evaluation   │
+           │                │                               │
+    (skip) │                └───────────────────────────────┘
+           │
+           ▼
+    ┌─────────────┐
+    │   Editor    │  ← Final approval gate
+    │  (Final)    │
+    │  (Gate 3)   │
+    └──────┬──────┘
+           │
+           ├────────────┬────────────────────────────────────┐
+           │            │                                    │
+           ▼            ▼ Rejected                           │
+    ┌─────────────┐  ┌─────────────┐                        │
+    │    Audio    │  │   Writer    │  ← Rewrites per final  │
+    │  Producer   │  │  (Agent 3)  │     editor feedback,   │
+    │  (Agent 6)  │  └──────┬──────┘     returns to Editor   │
+    └──────┬──────┘         │                               │
+           │                └───────────────────────────────┘
+           ▼
+      ✅ COMPLETE
 ```
+
+### Rejection Loops
+
+**Editor (Phase 1) ↔ Writer loop:**
+- Editor audits the draft. If it finds ANY issues (`has_feedback=true`) or rejects outright, the draft goes to the Writer with specific `rewriter_instructions`.
+- Writer rewrites the full script addressing every feedback point, then sends it **back to Editor (Phase 1)** for re-evaluation.
+- This loop continues until the Editor returns `APPROVED` with `has_feedback=false` — at which point the Writer is skipped entirely and the draft proceeds to Fact Checker.
+
+**Fact Checker → Fixer → Writer loop:**
+- Fact Checker verifies claims. If issues are found, the Fixer finds replacements and sends repair instructions to the Writer.
+- Writer applies fixes and returns to Fact Checker for re-verification.
+
+**Editor (Final) → Writer loop:**
+- Final Editor gives the last quality gate. If rejected, the Writer polishes again and resubmits.
+
+All loops are **unbounded** — the pipeline prioritizes correctness over speed.
 
 **Key behaviors:**
 - **Rejection loops have no limit** — the pipeline prioritizes correctness over speed
@@ -177,10 +225,10 @@ Everything bundles into the APK. No external web server. No cloud backend. The a
 │   ├── agents/               # Agent implementations
 │   │   ├── agent1.ts         # News Researcher — real Brave Search + LLM implementation
 │   │   ├── agent1Parse.ts    # Output parser for Agent 1 (6 theme sections)
+│   │   ├── agent3.ts         # Writer — real LLM rewrite with editor feedback
 │   │   ├── gate1.ts          # Editor Phase 1 — real LLM audit with structured JSON output
 │   │   ├── gate1Parse.ts     # JSON parser for Editor audit results
 │   │   ├── stubs/            # Configurable stub agents for pipeline testing
-│   │   │   ├── agent3Stub.ts
 │   │   │   ├── agent5Stub.ts
 │   │   │   ├── gate2Stub.ts
 │   │   │   ├── gate3Stub.ts
@@ -215,6 +263,7 @@ Everything bundles into the APK. No external web server. No cloud backend. The a
 │   │   └── utils.ts
 │   ├── prompts/
 │   │   ├── agent1.ts         # Agent 1 prompt builder — injects SessionConfig + requirements + bias
+│   │   ├── agent3.ts         # Writer prompt builder — current draft + editor feedback + rewrite instructions
 │   │   ├── gate1.ts          # Editor prompt builder — per-theme audit criteria + editorial segment checks
 │   │   └── shared/           # Permanent, session-independent prompt building blocks
 │   │       └── completenessRequirements.ts
