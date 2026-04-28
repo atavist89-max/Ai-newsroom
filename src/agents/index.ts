@@ -2,7 +2,7 @@ import type { AgentMap } from '../lib/pipelineTypes';
 import type { StubConfig } from './stubs/stubConfig';
 import { defaultStubConfig } from './stubs/stubConfig';
 import { createAgent1 } from './agent1';
-import { createGate1Stub } from './stubs/gate1Stub';
+import { createGate1 } from './gate1';
 import { createAgent3Stub } from './stubs/agent3Stub';
 import { createGate2Stub } from './stubs/gate2Stub';
 import { createAgent5Stub } from './stubs/agent5Stub';
@@ -14,7 +14,7 @@ export function createAgentMap(stubConfig?: Partial<StubConfig>): AgentMap {
 
   return {
     agent1: createAgent1(),
-    gate1: createGate1Stub(config),
+    gate1: createGate1(),
     agent3: createAgent3Stub(config.delayMs),
     gate2: createGate2Stub(config),
     agent5: createAgent5Stub(config.delayMs),

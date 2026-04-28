@@ -87,6 +87,8 @@ export interface AuditResult {
   stories: StoryAudit[];
   /** Aggregate guidance built from all rejection_reasons. Passed to Writer on rejection. */
   rewriter_instructions: string;
+  /** True if the editor has ANY observations, even minor suggestions. False only if draft is perfect. */
+  has_feedback: boolean;
 }
 
 export const STAGE_DEFINITIONS: Omit<StageRecord, 'status' | 'iteration' | 'reasoning' | 'output' | 'metadata' | 'startedAt' | 'completedAt'>[] = [

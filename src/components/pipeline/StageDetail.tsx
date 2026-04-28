@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { cn } from '../../lib/utils';
-import type { StageRecord } from '../../lib/pipelineTypes';
-import { FileText, Zap, ScrollText, Clock, ExternalLink, FileCheck } from 'lucide-react';
+import type { StageRecord, AuditResult, RuleResult } from '../../lib/pipelineTypes';
+import { FileText, Zap, ScrollText, Clock, ExternalLink, FileCheck, ClipboardCheck } from 'lucide-react';
 
 interface Agent1Metadata {
   firstDraft?: string;
@@ -23,7 +23,7 @@ interface StageDetailProps {
   stage: StageRecord | null;
 }
 
-type TabId = 'articles' | 'stream' | 'output' | 'prompt';
+type TabId = 'articles' | 'stream' | 'output' | 'audit' | 'prompt';
 
 export default function StageDetail({ stage }: StageDetailProps) {
   const [activeTab, setActiveTab] = useState<TabId>('stream');
@@ -53,12 +53,15 @@ export default function StageDetail({ stage }: StageDetailProps) {
   };
 
   const isAgent1 = stage.id === 'agent1';
+  const isGate = stage.id.startsWith('gate');
   const metadata = stage.metadata as Agent1Metadata | undefined;
+  const auditResult = stage.metadata as AuditResult | undefined;
 
   const tabs: { id: TabId; label: string; icon: React.ElementType; show: boolean }[] = [
     { id: 'articles', label: 'Articles', icon: FileText, show: isAgent1 },
     { id: 'stream', label: 'Stream', icon: Zap, show: true },
     { id: 'output', label: 'Agent Output', icon: FileCheck, show: isAgent1 },
+    { id: 'audit', label: 'Audit', icon: ClipboardCheck, show: isGate },
     { id: 'prompt', label: 'Prompt', icon: ScrollText, show: !!stage.prompt },
   ];
 
@@ -121,6 +124,7 @@ export default function StageDetail({ stage }: StageDetailProps) {
         {effectiveTab === 'articles' && <ArticlesTab metadata={metadata} />}
         {effectiveTab === 'stream' && <StreamTab stage={stage} />}
         {effectiveTab === 'output' && <OutputTab stage={stage} metadata={metadata} />}
+        {effectiveTab === 'audit' && <AuditTab stage={stage} audit={auditResult} />}
         {effectiveTab === 'prompt' && <PromptTab prompt={stage.prompt ?? ''} />}
       </div>
     </div>
@@ -272,6 +276,137 @@ function OutputTab({ stage, metadata }: { stage: StageRecord; metadata: Agent1Me
       <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[450px] overflow-auto leading-relaxed">
         {metadata.firstDraft}
       </pre>
+    </div>
+  );
+}
+
+function AuditTab({ stage, audit }: { stage: StageRecord; audit: AuditResult | undefined }) {
+  if (stage.status === 'running') {
+    return (
+      <div className="p-4 text-sm text-slate-500 text-center">
+        Audit in progress...
+      </div>
+    );
+  }
+
+  if (!audit) {
+    return (
+      <div className="p-4 text-sm text-slate-500 text-center">
+        No audit results yet.
+      </div>
+    );
+  }
+
+  const totalRules = audit.stories.reduce((sum, s) => sum + s.rules.length, 0);
+  const failCount = audit.stories.reduce(
+    (sum, s) => sum + s.rules.filter((r) => r.status === 'FAIL').length,
+    0
+  );
+
+  const themeLabels = [
+    'Local Theme 1',
+    'Local Theme 2',
+    'Local Theme 3',
+    'Continent Theme 1',
+    'Continent Theme 2',
+    'Continent Theme 3',
+  ];
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Overall Status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'text-xs px-2 py-1 rounded-full font-medium',
+              audit.approval_status === 'APPROVED'
+                ? 'bg-green-900/50 text-green-300'
+                : 'bg-red-900/50 text-red-300'
+            )}
+          >
+            {audit.approval_status}
+          </span>
+          {audit.has_feedback && (
+            <span className="text-xs text-amber-300 bg-amber-900/30 px-2 py-1 rounded-full">
+              Has Feedback
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] text-slate-500">
+          {failCount}/{totalRules} checks failed
+        </span>
+      </div>
+
+      {/* Per-Theme Breakdown */}
+      <div className="space-y-3">
+        {audit.stories.map((story, idx) => {
+          const label = themeLabels[idx] || `Theme ${idx + 1}`;
+          const storyFails = story.rules.filter((r) => r.status === 'FAIL').length;
+          return (
+            <div key={idx} className="bg-slate-800/50 rounded border border-slate-700/50">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700/50">
+                <span className="text-xs font-medium text-slate-200">{label}</span>
+                <span
+                  className={cn(
+                    'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                    storyFails === 0
+                      ? 'bg-green-900/30 text-green-400'
+                      : 'bg-red-900/30 text-red-400'
+                  )}
+                >
+                  {storyFails === 0 ? 'PASS' : `${storyFails} FAIL`}
+                </span>
+              </div>
+              <div className="px-3 py-2 space-y-1">
+                {story.rules.map((rule, rIdx) => (
+                  <RuleRow key={rIdx} rule={rule} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Rewriter Instructions */}
+      {audit.rewriter_instructions && audit.rewriter_instructions.length > 0 && (
+        <div className="space-y-1">
+          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">
+            Rewriter Instructions
+          </span>
+          <pre className="text-xs text-amber-200/80 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[200px] overflow-auto">
+            {audit.rewriter_instructions}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RuleRow({ rule }: { rule: RuleResult }) {
+  return (
+    <div className="flex items-start gap-2 text-[11px]">
+      <span
+        className={cn(
+          'flex-shrink-0 mt-0.5 w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-bold',
+          rule.status === 'PASS'
+            ? 'bg-green-900/40 text-green-400'
+            : 'bg-red-900/40 text-red-400'
+        )}
+      >
+        {rule.status === 'PASS' ? '✓' : '✗'}
+      </span>
+      <div className="flex-1 min-w-0">
+        <span className={cn('font-medium', rule.status === 'PASS' ? 'text-slate-300' : 'text-red-300')}>
+          {rule.rule_name}
+        </span>
+        {rule.details && (
+          <span className="text-slate-500 ml-1">— {rule.details}</span>
+        )}
+        {rule.rejection_reason && (
+          <div className="text-red-400/80 mt-0.5">{rule.rejection_reason}</div>
+        )}
+      </div>
     </div>
   );
 }

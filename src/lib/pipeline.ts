@@ -225,13 +225,14 @@ export class PipelineRunner {
         return 'gate1';
 
       case 'gate1': {
-        if (m.approval_status === 'REJECTED') {
+        const hasFeedback = m.has_feedback === true;
+        if (m.approval_status === 'REJECTED' || hasFeedback) {
           this.updateState({
             finalCheckLoops: this.state.finalCheckLoops + 1,
           });
-          return 'agent1';
+          return 'agent3';
         }
-        return 'agent3';
+        return 'gate2';
       }
 
       case 'agent3':
