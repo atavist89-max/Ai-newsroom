@@ -13,7 +13,7 @@ export function createGate1(): AgentFn {
 
     // STEP 1: Build prompt
     onReasoningChunk('Building editorial audit prompt...\n');
-    const prompt = buildGate1Prompt(sessionConfig, currentDraft);
+    const prompt = buildGate1Prompt(sessionConfig, currentDraft, ctx.iteration);
 
     // STEP 2: Stream to LLM
     onReasoningChunk('Sending draft to editor for Phase 1 audit...\n\n');

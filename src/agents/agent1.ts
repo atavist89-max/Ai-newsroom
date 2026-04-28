@@ -73,7 +73,7 @@ export function createAgent1(): AgentFn {
 
     // STEP 2: Build prompt
     onReasoningChunk('Building prompt with session context and requirements...\n');
-    const prompt = buildAgent1Prompt(sessionConfig, topicGroups);
+    const prompt = buildAgent1Prompt(sessionConfig, topicGroups, ctx.iteration);
 
     // Publish articles and prompt to UI before LLM call so user can inspect them
     onUpdate?.({

@@ -35,7 +35,8 @@ export interface TopicArticleGroup {
 
 export function buildAgent1Prompt(
   config: SessionConfig,
-  topicGroups: TopicArticleGroup[]
+  topicGroups: TopicArticleGroup[],
+  iteration: number = 1
 ): string {
   const completenessReqs = replacePlaceholders(THEME_COMPLETENESS_REQUIREMENTS, config);
   const biasInstructions = biasAgent1Instructions[config.editorial.biasId];
@@ -175,7 +176,7 @@ ${config.editorial.includeSegment ? '6. **Sign-off** — closing with music cue'
 You MUST produce exactly two sections:
 
 \`\`\`
-## FIRST DRAFT SCRIPT
+## FIRST DRAFT SCRIPT (Iteration ${iteration})
 [Full script with music cues — ALL IN ENGLISH]
 
 ## THEME SELECTION REPORT

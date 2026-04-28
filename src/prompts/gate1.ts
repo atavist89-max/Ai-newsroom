@@ -3,7 +3,8 @@ import { formatSessionContextForLLM } from '../lib/sessionConfig';
 
 export function buildGate1Prompt(
   config: SessionConfig,
-  draft: string
+  draft: string,
+  iteration: number = 1
 ): string {
   const topicList = config.content.topics.join(', ');
   const hasEditorialSegment = config.editorial.includeSegment;
@@ -45,7 +46,7 @@ You are a senior podcast editor performing a Phase 1 editorial audit. Evaluate t
 
 ${formatSessionContextForLLM(config)}
 
-## DRAFT TO AUDIT
+## DRAFT TO AUDIT (Iteration ${iteration})
 
 Themes 1-3 are LOCAL (${config.geography.country.name}) news.
 Themes 4-6 are ${config.geography.continent.name} continent news.

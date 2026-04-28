@@ -5,7 +5,8 @@ import { biasAgent1Instructions } from '../data/bias';
 export function buildAgent3Prompt(
   config: SessionConfig,
   currentDraft: string,
-  rewriterInstructions: string
+  rewriterInstructions: string,
+  iteration: number = 1
 ): string {
   const biasInstructions = biasAgent1Instructions[config.editorial.biasId];
   const topicList = config.content.topics.join(', ');
@@ -27,7 +28,7 @@ The Phase 1 Editor reviewed the draft and provided the following feedback. You M
 ${rewriterInstructions}
 \`\`\`
 
-## CURRENT DRAFT
+## CURRENT DRAFT (Iteration ${iteration})
 
 \`\`\`
 ${currentDraft}

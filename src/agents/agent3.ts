@@ -18,7 +18,7 @@ export function createAgent3(): AgentFn {
 
     // STEP 1: Build prompt
     onReasoningChunk('Building rewrite prompt with editor feedback...\n');
-    const prompt = buildAgent3Prompt(sessionConfig, currentDraft, rewriterInstructions);
+    const prompt = buildAgent3Prompt(sessionConfig, currentDraft, rewriterInstructions, ctx.iteration);
 
     // STEP 2: Stream to LLM
     onReasoningChunk('Sending draft to Writer for rewrite...\n\n');

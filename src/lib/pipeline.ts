@@ -94,6 +94,8 @@ export class PipelineRunner {
           throw new Error('Pipeline aborted by user');
         }
 
+        console.log(`[Pipeline] >>> Stage ${stage} starting — draft length: ${draft.length}`);
+
         const result = await this.executeStage(
           stage,
           sessionConfig,
@@ -103,6 +105,12 @@ export class PipelineRunner {
 
         draft = result.draft;
         feedback = result.metadata;
+
+        const preview = result.draft.length > 200
+          ? `${result.draft.slice(0, 100)} ... ${result.draft.slice(-100)}`
+          : result.draft;
+        console.log(`[Pipeline] <<< Stage ${stage} completed — output draft length: ${result.draft.length}`);
+        console.log(`[Pipeline] Draft preview: ${preview}`);
 
         // Determine next stage
         const next = this.getNextStage(stage, result.metadata);
@@ -157,6 +165,8 @@ export class PipelineRunner {
       iteration,
       reasoning: '',
       output: '',
+      prompt: undefined,
+      metadata: undefined,
       startedAt: new Date().toISOString(),
     });
     this.updateState({ currentStageId: stageId });
@@ -164,6 +174,7 @@ export class PipelineRunner {
     const ctx: AgentContext = {
       sessionConfig,
       currentDraft,
+      iteration,
       feedback,
     };
 

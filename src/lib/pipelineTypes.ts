@@ -22,6 +22,7 @@ export interface StageRecord {
 export interface AgentContext {
   sessionConfig: SessionConfig;
   currentDraft: string;
+  iteration: number;
   feedback?: unknown;
 }
 
