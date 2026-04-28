@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { Toaster, toast } from 'sonner';
 import { Mic2, Music, Globe, Clock, Check, Radio, Newspaper, Scale, Play, Pause, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { continents } from '../data/countries';
+import { countries, continents } from '../data/countries';
 import { timeframes } from '../data/timeframes';
 import { topics } from '../data/topics';
 import { voices } from '../data/voices';
@@ -12,6 +12,7 @@ import { BiasSelector } from './BiasSelector';
 import { CountryMap } from './CountryMap';
 import { CountrySearch } from './CountrySearch';
 import { loadApiConfig, loadBraveApiKey } from '../lib/apiConfig';
+import { BRAVE_SUPPORTED_COUNTRIES } from '../lib/newsSearch';
 import { buildSessionConfig } from '../lib/sessionConfig';
 import type { SessionConfig } from '../lib/sessionConfig';
 import PipelinePanel from './pipeline/PipelinePanel';
@@ -23,6 +24,12 @@ interface Newsroom2ScreenProps {
 }
 
 export default function Newsroom2Screen({ sessionContext: _sessionContext, onSessionContextChange }: Newsroom2ScreenProps) {
+  // Filter to only Brave-supported countries
+  const braveSupportedCountries = useMemo(() =>
+    countries.filter(c => BRAVE_SUPPORTED_COUNTRIES.has(c.code)),
+    []
+  );
+
   // Selection states (identical to Newsroom)
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [selectedContinent, setSelectedContinent] = useState<Continent>(Object.values(continents)[0]);
@@ -190,11 +197,11 @@ export default function Newsroom2Screen({ sessionContext: _sessionContext, onSes
             {/* Geographic Selection */}
             <Section icon={Globe} title="Geographic Selection">
               <div className="space-y-3">
-                <CountrySearch value={selectedCountry} onChange={handleCountrySelect} />
+                <CountrySearch value={selectedCountry} onChange={handleCountrySelect} availableCountries={braveSupportedCountries} />
                 <div className="flex items-center gap-2 text-sm text-slate-400">
                   <span>Continent: {selectedContinent.name}</span>
                   <span>•</span>
-                  <span>{selectedCountry ? `${selectedCountry.newsSources.length} news sources` : 'No country selected'}</span>
+                  <span>{selectedCountry ? `${selectedCountry.newsSources.length} news sources` : `${braveSupportedCountries.length} Brave-supported countries`}</span>
                 </div>
                 <CountryMap selectedCountry={selectedCountry} selectedContinent={selectedContinent} />
               </div>
