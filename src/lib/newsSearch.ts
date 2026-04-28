@@ -2,6 +2,14 @@ import { loadBraveApiKey } from './apiConfig';
 
 const BRAVE_BASE_URL = 'https://api.search.brave.com/res/v1/web/search';
 
+// Brave Search API only supports these 37 country codes for the `country` parameter.
+// For countries outside this list, we omit the param and rely on query terms.
+const BRAVE_SUPPORTED_COUNTRIES = new Set([
+  'AR', 'AU', 'AT', 'BE', 'BR', 'CA', 'CL', 'DK', 'FI', 'FR', 'DE', 'GR', 'HK',
+  'IN', 'ID', 'IT', 'JP', 'KR', 'MY', 'MX', 'NL', 'NZ', 'NO', 'CN', 'PL', 'PT',
+  'PH', 'RU', 'SA', 'ZA', 'ES', 'SE', 'CH', 'TW', 'TR', 'GB', 'US',
+]);
+
 export interface NewsArticle {
   title: string;
   description: string;
@@ -69,7 +77,9 @@ async function fetchBraveSearch(params: {
   searchParams.set('count', String(Math.min(params.count || 10, 20)));
   if (params.freshness) searchParams.set('freshness', params.freshness);
   if (params.searchLang) searchParams.set('search_lang', params.searchLang);
-  if (params.country) searchParams.set('country', params.country.toLowerCase());
+  if (params.country && BRAVE_SUPPORTED_COUNTRIES.has(params.country.toUpperCase())) {
+    searchParams.set('country', params.country.toLowerCase());
+  }
   searchParams.set('safesearch', 'off');
 
   const response = await fetch(`${BRAVE_BASE_URL}?${searchParams.toString()}`, {
