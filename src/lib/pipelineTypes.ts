@@ -1,6 +1,16 @@
 import type { SessionConfig } from './sessionConfig';
 
-export type StageId = 'agent1' | 'gate1' | 'agent3' | 'gate2' | 'agent5' | 'gate3' | 'agent6';
+export type StageId =
+  | 'agent1'
+  | 'fullScriptEditor'
+  | 'fullScriptWriter'
+  | 'segmentWriter'
+  | 'segmentEditor'
+  | 'assembler'
+  | 'gate2'
+  | 'agent5'
+  | 'gate3'
+  | 'agent6';
 
 export type StageStatus = 'pending' | 'running' | 'completed' | 'rejected' | 'error';
 
@@ -61,8 +71,11 @@ export interface PipelineCallbacks {
 
 export interface AgentMap {
   agent1: AgentFn;
-  gate1: AgentFn;
-  agent3: AgentFn;
+  fullScriptEditor: AgentFn;
+  fullScriptWriter: AgentFn;
+  segmentWriter: AgentFn;
+  segmentEditor: AgentFn;
+  assembler: AgentFn;
   gate2: AgentFn;
   agent5: AgentFn;
   gate3: AgentFn;
@@ -90,12 +103,19 @@ export interface AuditResult {
   rewriter_instructions: string;
   /** True if the editor has ANY observations, even minor suggestions. False only if draft is perfect. */
   has_feedback: boolean;
+  /** When scope is SEGMENTS, lists which story_ids failed and need rewriting. */
+  rewrite_scope?: 'FULL_SCRIPT' | 'SEGMENTS';
+  /** Story IDs that failed audit (1-7). Only present when rewrite_scope === 'SEGMENTS'. */
+  failed_segments?: number[];
 }
 
 export const STAGE_DEFINITIONS: Omit<StageRecord, 'status' | 'iteration' | 'reasoning' | 'output' | 'metadata' | 'startedAt' | 'completedAt'>[] = [
   { id: 'agent1', name: 'Researcher', shortName: 'Research', icon: 'Search' },
-  { id: 'gate1', name: 'Editor (Phase 1)', shortName: 'Edit 1', icon: 'ClipboardCheck' },
-  { id: 'agent3', name: 'Writer', shortName: 'Write', icon: 'PenTool' },
+  { id: 'fullScriptEditor', name: 'Full Script Editor', shortName: 'Full Edit', icon: 'ClipboardCheck' },
+  { id: 'fullScriptWriter', name: 'Full Script Writer', shortName: 'Full Write', icon: 'PenTool' },
+  { id: 'segmentWriter', name: 'Segment Writer', shortName: 'Seg Write', icon: 'FileEdit' },
+  { id: 'segmentEditor', name: 'Segment Editor', shortName: 'Seg Edit', icon: 'FileCheck' },
+  { id: 'assembler', name: 'Assembler', shortName: 'Assemble', icon: 'Layers' },
   { id: 'gate2', name: 'Fact Checker', shortName: 'Fact', icon: 'ShieldCheck' },
   { id: 'agent5', name: 'Researcher (Fix)', shortName: 'Fix', icon: 'Wrench' },
   { id: 'gate3', name: 'Editor (Final)', shortName: 'Final', icon: 'CheckCircle' },

@@ -1,8 +1,10 @@
 import type { AgentFn } from '../lib/pipelineTypes';
 import { loadApiConfig, streamLLM } from '../lib/apiConfig';
-import { buildAgent3Prompt } from '../prompts/agent3';
+import { buildFullScriptWriterPrompt } from '../prompts/fullScriptWriter';
+import { clearAllSegments, writeSegment, writeFullScript } from '../lib/fileManager';
+import { parseFullScript, assembleFullScript } from '../lib/scriptParser';
 
-export function createAgent3(): AgentFn {
+export function createFullScriptWriter(): AgentFn {
   return async (ctx, onReasoningChunk) => {
     const { sessionConfig, currentDraft, feedback } = ctx;
 
@@ -18,7 +20,7 @@ export function createAgent3(): AgentFn {
 
     // STEP 1: Build prompt
     onReasoningChunk('Building rewrite prompt with editor feedback...\n');
-    const prompt = buildAgent3Prompt(sessionConfig, currentDraft, rewriterInstructions, ctx.iteration);
+    const prompt = buildFullScriptWriterPrompt(sessionConfig, currentDraft, rewriterInstructions, ctx.iteration);
 
     // STEP 2: Stream to LLM
     onReasoningChunk('Sending draft to Writer for rewrite...\n\n');
@@ -45,11 +47,29 @@ export function createAgent3(): AgentFn {
       },
     });
 
+    // STEP 3: Parse segments and write to files
+    onReasoningChunk('Parsing rewritten segments...\n');
+    const segments = parseFullScript(draft);
+
+    if (segments.length > 0) {
+      await clearAllSegments();
+      for (const seg of segments) {
+        await writeSegment(seg.id, seg.content);
+        onReasoningChunk(`  Wrote ${seg.id}.txt (${seg.content.length} chars)\n`);
+      }
+      const fullScript = assembleFullScript(segments);
+      await writeFullScript(fullScript);
+      onReasoningChunk(`  Wrote full_script.txt (${fullScript.length} chars)\n`);
+    } else {
+      onReasoningChunk('  No XML segments found — writing draft as single block\n');
+      await writeFullScript(draft);
+    }
+
     return {
       draft,
       reasoning,
       prompt,
-      metadata: { streamDiagnostics: diagnostics },
+      metadata: { streamDiagnostics: diagnostics, segmentsWritten: segments.length },
     };
   };
 }

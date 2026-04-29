@@ -54,14 +54,14 @@ export default function StageDetail({ stage }: StageDetailProps) {
   };
 
   const isAgent1 = stage.id === 'agent1';
-  const isGate = stage.id.startsWith('gate');
+  const isGate = stage.id.startsWith('gate') || stage.id === 'fullScriptEditor' || stage.id === 'segmentEditor';
   const metadata = stage.metadata as Agent1Metadata | undefined;
   const auditResult = stage.metadata as AuditResult | undefined;
 
   const tabs: { id: TabId; label: string; icon: React.ElementType; show: boolean }[] = [
     { id: 'articles', label: 'Articles', icon: FileText, show: isAgent1 },
     { id: 'stream', label: 'Stream', icon: Zap, show: true },
-    { id: 'output', label: 'Agent Output', icon: FileCheck, show: isAgent1 },
+    { id: 'output', label: 'Agent Output', icon: FileCheck, show: isAgent1 || stage.id === 'assembler' },
     { id: 'audit', label: 'Audit', icon: ClipboardCheck, show: isGate },
     { id: 'prompt', label: 'Prompt', icon: ScrollText, show: !!stage.prompt },
   ];
@@ -257,18 +257,38 @@ function PromptTab({ prompt }: { prompt: string }) {
 
 function OutputTab({ stage, metadata }: { stage: StageRecord; metadata: Agent1Metadata | undefined }) {
   const diagnostics = metadata?.streamDiagnostics ?? (stage.metadata as Record<string, unknown> | undefined)?.streamDiagnostics as string[] | undefined;
+  const assemblerMeta = stage.id === 'assembler' ? (stage.metadata as Record<string, unknown> | undefined) : undefined;
 
   if (stage.status === 'running') {
     return (
       <div className="p-4 text-sm text-slate-500 text-center">
-        Draft generation in progress...
+        {stage.id === 'assembler' ? 'Assembling segments...' : 'Draft generation in progress...'}
       </div>
     );
   }
 
   return (
     <div className="p-4 space-y-3">
-      {metadata?.firstDraft ? (
+      {stage.id === 'assembler' && assemblerMeta ? (
+        <div className="space-y-2">
+          <div className="text-xs text-slate-300">
+            <span className="font-medium">Segments:</span> {String(assemblerMeta.segmentCount ?? 0)}
+          </div>
+          <div className="text-xs text-slate-300">
+            <span className="font-medium">Total length:</span> {String(assemblerMeta.totalLength ?? 0)} characters
+          </div>
+          {Array.isArray(assemblerMeta.missingSegments) && (assemblerMeta.missingSegments as string[]).length > 0 && (
+            <div className="text-xs text-amber-300">
+              <span className="font-medium">Missing:</span> {(assemblerMeta.missingSegments as string[]).join(', ')}
+            </div>
+          )}
+          {stage.output && (
+            <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[300px] overflow-auto leading-relaxed">
+              {stage.output}
+            </pre>
+          )}
+        </div>
+      ) : metadata?.firstDraft ? (
         <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[350px] overflow-auto leading-relaxed">
           {metadata.firstDraft}
         </pre>

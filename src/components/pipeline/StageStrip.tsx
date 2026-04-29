@@ -11,12 +11,18 @@ import {
   Loader2,
   AlertTriangle,
   XCircle,
+  FileEdit,
+  FileCheck,
+  Layers,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ElementType> = {
   Search,
   ClipboardCheck,
   PenTool,
+  FileEdit,
+  FileCheck,
+  Layers,
   ShieldCheck,
   Wrench,
   CheckCircle,

@@ -23,7 +23,7 @@ export const createGate1Stub = (config: StubConfig): AgentFn => {
       onReasoningChunk(step + '\n');
     }
 
-    const decision = config.gate1Decision || 'APPROVE';
+    const decision = config.gate1Decision || 'APPROVED';
 
     const allRules: Array<{ rule_name: string; status: 'PASS' | 'FAIL'; details?: string; rejection_reason?: string }> = [
       { rule_name: 'MINIMUM_LENGTH', status: 'PASS', details: 'All themes ≥2000 chars' },
@@ -35,7 +35,7 @@ export const createGate1Stub = (config: StubConfig): AgentFn => {
     ];
 
     // If rejecting, flip some rules to FAIL with rejection_reasons
-    if (decision === 'REJECT') {
+    if (decision === 'REJECTED') {
       allRules[0].status = 'FAIL';
       allRules[0].details = 'Theme 2 is 1650 characters';
       allRules[0].rejection_reason =
@@ -53,12 +53,14 @@ export const createGate1Stub = (config: StubConfig): AgentFn => {
       .filter((r): r is string => !!r);
 
     const rewriterInstructions =
-      decision === 'REJECT'
+      decision === 'REJECTED'
         ? `REJECTION FEEDBACK — apply these fixes:\n${failReasons.map((r, i) => `${i + 1}. ${r}`).join('\n')}`
         : 'All requirements passed. No changes needed.';
 
     const metadata = {
-      approval_status: decision,
+      approval_status: decision as 'APPROVED' | 'REJECTED',
+      rewrite_scope: decision === 'REJECTED' ? 'FULL_SCRIPT' : 'FULL_SCRIPT',
+      failed_segments: [],
       themes: [
         {
           theme_id: 1,

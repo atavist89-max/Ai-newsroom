@@ -1,9 +1,9 @@
 import type { AgentFn } from '../lib/pipelineTypes';
 import { loadApiConfig, streamLLM } from '../lib/apiConfig';
-import { buildGate1Prompt } from '../prompts/gate1';
-import { parseGate1Output } from './gate1Parse';
+import { buildFullScriptEditorPrompt } from '../prompts/fullScriptEditor';
+import { parseFullScriptEditorOutput } from './fullScriptEditorParse';
 
-export function createGate1(): AgentFn {
+export function createFullScriptEditor(): AgentFn {
   return async (ctx, onReasoningChunk) => {
     const { sessionConfig, currentDraft } = ctx;
 
@@ -13,7 +13,7 @@ export function createGate1(): AgentFn {
 
     // STEP 1: Build prompt
     onReasoningChunk('Building editorial audit prompt...\n');
-    const prompt = buildGate1Prompt(sessionConfig, currentDraft, ctx.iteration);
+    const prompt = buildFullScriptEditorPrompt(sessionConfig, currentDraft, ctx.iteration);
 
     // STEP 2: Stream to LLM
     onReasoningChunk('Sending draft to editor for Phase 1 audit...\n\n');
@@ -41,7 +41,7 @@ export function createGate1(): AgentFn {
     });
 
     // STEP 3: Parse output
-    const auditResult = parseGate1Output(response);
+    const auditResult = parseFullScriptEditorOutput(response);
 
     // Stream summary
     const statusLine = auditResult.approval_status === 'APPROVED'

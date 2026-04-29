@@ -4,6 +4,8 @@ import { searchTopicLocal, searchTopicContinent } from '../lib/newsSearch';
 import { buildAgent1Prompt, type TopicArticleGroup } from '../prompts/agent1';
 import { parseAgent1Output } from './agent1Parse';
 import { getTopicSearchTerm } from '../data/topics';
+import { clearAllSegments, writeSegment, writeFullScript } from '../lib/fileManager';
+import { parseFullScript, assembleFullScript } from '../lib/scriptParser';
 
 function getFreshness(timeframeId: string): string {
   switch (timeframeId) {
@@ -119,6 +121,30 @@ export function createAgent1(): AgentFn {
     onReasoningChunk('Parsing output...\n');
     const parsed = parseAgent1Output(draft);
 
+    // STEP 5: Write segment files
+    onReasoningChunk('Writing segment files...\n');
+    await clearAllSegments();
+
+    // Try to parse XML segments from the draft
+    const segments = parseFullScript(draft);
+
+    if (segments.length > 0) {
+      // Write each parsed segment to file
+      for (const seg of segments) {
+        await writeSegment(seg.id, seg.content);
+        onReasoningChunk(`  Wrote ${seg.id}.txt (${seg.content.length} chars)\n`);
+      }
+
+      // Assemble and write full script
+      const fullScript = assembleFullScript(segments);
+      await writeFullScript(fullScript);
+      onReasoningChunk(`  Wrote full_script.txt (${fullScript.length} chars)\n`);
+    } else {
+      // Fallback: write entire draft as a single segment if XML parsing fails
+      onReasoningChunk('  No XML segments found — writing draft as single block\n');
+      await writeFullScript(draft);
+    }
+
     return {
       draft,
       reasoning,
@@ -138,6 +164,7 @@ export function createAgent1(): AgentFn {
         sourcesUsed: parsed.sources,
         fallbackUsed: parsed.fallbackUsed,
         streamDiagnostics: diagnostics,
+        segmentsWritten: segments.length,
       },
     };
   };

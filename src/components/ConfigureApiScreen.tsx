@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Settings, Key, Globe, Cpu, Save, TestTube, Eye, EyeOff, Loader2, CheckCircle, XCircle, Search } from 'lucide-react';
+import { Settings, Key, Globe, Cpu, Save, TestTube, Eye, EyeOff, Loader2, CheckCircle, XCircle, Search, FolderOpen } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { loadApiConfig, saveApiConfig, testApiConnection, loadBraveApiKey, saveBraveApiKey, testBraveApiKey, providerOptions } from '../lib/apiConfig';
+import { isExternalStorageEnabled, setExternalStorageEnabled } from '../lib/fileManager';
 import type { ApiConfig, ApiProvider } from '../types';
 
 export default function ConfigureApiScreen() {
@@ -20,14 +21,16 @@ export default function ConfigureApiScreen() {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingBrave, setIsTestingBrave] = useState(false);
   const [braveTestResult, setBraveTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [useExternalStorage, setUseExternalStorage] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadApiConfig(), loadBraveApiKey()]).then(([loaded, braveKey]) => {
+    Promise.all([loadApiConfig(), loadBraveApiKey(), isExternalStorageEnabled()]).then(([loaded, braveKey, externalStorage]) => {
       if (!cancelled) {
         setConfig(loaded);
         setBraveApiKey(braveKey);
+        setUseExternalStorage(externalStorage);
         setIsLoaded(true);
       }
     });
@@ -50,6 +53,7 @@ export default function ConfigureApiScreen() {
       await Promise.all([
         saveApiConfig(config),
         saveBraveApiKey(braveApiKey),
+        setExternalStorageEnabled(useExternalStorage),
       ]);
       toast.success('API configuration saved!');
     } catch {
@@ -230,6 +234,33 @@ export default function ConfigureApiScreen() {
               <span>{braveTestResult.message}</span>
             </div>
           )}
+        </Section>
+
+        {/* File Storage */}
+        <Section icon={FolderOpen} title="File Storage">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <div className="text-sm text-slate-200">Use External Storage</div>
+              <p className="text-xs text-slate-500">
+                Save segment files to Documents folder instead of app-private storage.
+                On Android, this requires storage permission. Default (off) uses private app storage with no permission needed.
+              </p>
+            </div>
+            <button
+              onClick={() => setUseExternalStorage((prev) => !prev)}
+              className={cn(
+                'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                useExternalStorage ? 'bg-blue-500' : 'bg-slate-600'
+              )}
+            >
+              <span
+                className={cn(
+                  'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                  useExternalStorage ? 'translate-x-6' : 'translate-x-1'
+                )}
+              />
+            </button>
+          </div>
         </Section>
 
         {/* Actions */}

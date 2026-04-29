@@ -23,7 +23,7 @@ export const createGate3Stub = (config: StubConfig): AgentFn => {
       onReasoningChunk(step + '\n');
     }
 
-    const decision = config.gate3Decision || 'APPROVE';
+    const decision = config.gate3Decision || 'APPROVED';
 
     const allRules: Array<{ rule_name: string; status: 'PASS' | 'FAIL'; details?: string; rejection_reason?: string }> = [
       { rule_name: 'MINIMUM_LENGTH', status: 'PASS' },
@@ -36,7 +36,7 @@ export const createGate3Stub = (config: StubConfig): AgentFn => {
     ];
 
     // If rejecting, flip some rules to FAIL with rejection_reasons
-    if (decision === 'REJECT') {
+    if (decision === 'REJECTED') {
       allRules[1].status = 'FAIL';
       allRules[1].rejection_reason =
         'Theme 3 (Technology) only covers one development (a new smartphone launch). It needs at least 2 more angles — policy implications, market impact, or competitor reactions — to meet the 3-development minimum.';
@@ -52,12 +52,12 @@ export const createGate3Stub = (config: StubConfig): AgentFn => {
       .filter((r): r is string => !!r);
 
     const rewriterInstructions =
-      decision === 'REJECT'
+      decision === 'REJECTED'
         ? `FINAL REJECTION — apply these fixes before resubmitting:\n${failReasons.map((r, i) => `${i + 1}. ${r}`).join('\n')}`
         : 'All requirements passed. Script approved for production.';
 
     const metadata = {
-      approval_status: decision,
+      approval_status: decision as 'APPROVED' | 'REJECTED',
       themes: Array.from({ length: 6 }, (_, i) => ({
         theme_id: i + 1,
         rules: allRules,

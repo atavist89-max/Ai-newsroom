@@ -173,11 +173,46 @@ ${config.editorial.includeSegment ? `5. **Editorial Segment** — thematic analy
 ${config.editorial.includeSegment ? '6. **Sign-off** — closing with music cue' : '5. **Sign-off** — closing with music cue'}
 
 ## OUTPUT FORMAT
-You MUST produce exactly two sections:
+You MUST produce exactly two sections. The script MUST be wrapped in XML segment tags:
 
 \`\`\`
 ## FIRST DRAFT SCRIPT (Iteration ${iteration})
-[Full script with music cues — ALL IN ENGLISH]
+
+<segment id="intro">
+[Opening with music cue, headlines teaser, introduce podcast]
+</segment>
+
+<segment id="topic1" topic="${topicGroups[0]?.topic || 'N/A'}">
+[Local theme 1 summary with music cues]
+</segment>
+
+<segment id="topic2" topic="${topicGroups[1]?.topic || 'N/A'}">
+[Local theme 2 summary with music cues]
+</segment>
+
+<segment id="topic3" topic="${topicGroups[2]?.topic || 'N/A'}">
+[Local theme 3 summary with music cues]
+</segment>
+
+<segment id="topic4" topic="${topicGroups[0]?.topic || 'N/A'}">
+[Continent theme 1 summary with music cues]
+</segment>
+
+<segment id="topic5" topic="${topicGroups[1]?.topic || 'N/A'}">
+[Continent theme 2 summary with music cues]
+</segment>
+
+<segment id="topic6" topic="${topicGroups[2]?.topic || 'N/A'}">
+[Continent theme 3 summary with music cues]
+</segment>
+
+${config.editorial.includeSegment ? `<segment id="topic7" topic="Editorial">
+[Editorial segment with ${config.editorial.biasLabel} perspective]
+</segment>
+
+` : ''}<segment id="outro">
+[Sign-off with music cue]
+</segment>
 
 ## THEME SELECTION REPORT
 - Topics: ${topicList}
@@ -201,5 +236,13 @@ You MUST produce exactly two sections:
   * Tone consistent: [Yes/No]
 - API Articles Available: ${topicGroups.reduce((sum, g) => sum + g.localArticles.length + g.continentArticles.length, 0)} total
 \`\`\`
+
+## XML SEGMENT RULES
+- EVERY segment must be wrapped in \`<segment id="...">...</segment>\` tags
+- Do NOT omit the XML tags — they are required for downstream processing
+- Segment ids must be exactly: intro, topic1, topic2, topic3, topic4, topic5, topic6, topic7 (if editorial), outro
+- The topic attribute should match the topic name for topic1-6, \`Editorial\` for topic7
+- Music cues go INSIDE the segment tags
+- Content between tags is the actual podcast script text
 `;
 }

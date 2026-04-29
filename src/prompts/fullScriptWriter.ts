@@ -2,7 +2,7 @@ import type { SessionConfig } from '../lib/sessionConfig';
 import { formatSessionContextForLLM } from '../lib/sessionConfig';
 import { biasAgent1Instructions } from '../data/bias';
 
-export function buildAgent3Prompt(
+export function buildFullScriptWriterPrompt(
   config: SessionConfig,
   currentDraft: string,
   rewriterInstructions: string,
@@ -44,6 +44,10 @@ Rewrite the ENTIRE script from top to bottom. Do not return a summary of changes
 - ${editorialNote}
 - The opening and sign-off structure
 - Source attributions by name
+- XML segment tags: each theme must be wrapped in \`<segment id="topicN" topic="...">...</segment>\` tags
+- The intro must be in \`<segment id="intro">...</segment>\`
+- The outro must be in \`<segment id="outro">...</segment>\`
+- If editorial segment exists, wrap in \`<segment id="topic7" topic="Editorial">...</segment>\`
 
 ### What to improve:
 - **Address EVERY item in the Editor's feedback** — do not ignore any rejection_reason

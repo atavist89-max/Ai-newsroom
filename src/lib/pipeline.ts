@@ -244,7 +244,7 @@ export class PipelineRunner {
 
     const m = metadata as Record<string, unknown>;
 
-    if (stageId === 'gate1' || stageId === 'gate3') {
+    if (stageId === 'fullScriptEditor' || stageId === 'segmentEditor' || stageId === 'gate3') {
       const status = m.approval_status;
       if (status === 'REJECTED') return 'rejected';
       return 'completed';
@@ -261,8 +261,12 @@ export class PipelineRunner {
 
   private getNextStage(current: StageId, metadata: unknown): StageId | 'COMPLETE' {
     if (!metadata || typeof metadata !== 'object') {
-      // Fallback: just proceed linearly
-      const flow: StageId[] = ['agent1', 'gate1', 'agent3', 'gate2', 'agent5', 'gate3', 'agent6'];
+      // Fallback: linear flow with new stages
+      const flow: StageId[] = [
+        'agent1', 'fullScriptEditor', 'fullScriptWriter',
+        'segmentWriter', 'segmentEditor', 'assembler',
+        'gate2', 'agent5', 'gate3', 'agent6',
+      ];
       const idx = flow.indexOf(current);
       if (idx === -1 || idx === flow.length - 1) return 'COMPLETE';
       return flow[idx + 1];
@@ -272,21 +276,44 @@ export class PipelineRunner {
 
     switch (current) {
       case 'agent1':
-        return 'gate1';
+        return 'fullScriptEditor';
 
-      case 'gate1': {
+      case 'fullScriptEditor': {
         const hasFeedback = m.has_feedback === true;
         if (m.approval_status === 'REJECTED' || hasFeedback) {
           this.updateState({
             finalCheckLoops: this.state.finalCheckLoops + 1,
           });
-          return 'agent3';
+          // Route based on rewrite_scope
+          const rewriteScope = m.rewrite_scope;
+          if (rewriteScope === 'SEGMENTS' && Array.isArray(m.failed_segments) && (m.failed_segments as number[]).length > 0) {
+            return 'segmentWriter';
+          }
+          return 'fullScriptWriter';
         }
         return 'gate2';
       }
 
-      case 'agent3':
-        return 'gate1';
+      case 'fullScriptWriter':
+        return 'fullScriptEditor';
+
+      case 'segmentWriter':
+        return 'segmentEditor';
+
+      case 'segmentEditor': {
+        const hasFeedback = m.has_feedback === true;
+        if (m.approval_status === 'REJECTED' || hasFeedback) {
+          const rewriteScope = m.rewrite_scope;
+          if (rewriteScope === 'SEGMENTS' && Array.isArray(m.failed_segments) && (m.failed_segments as number[]).length > 0) {
+            return 'segmentWriter';
+          }
+          return 'fullScriptWriter';
+        }
+        return 'assembler';
+      }
+
+      case 'assembler':
+        return 'fullScriptEditor';
 
       case 'gate2': {
         if (m.overall_status === 'ISSUES_FOUND') {
@@ -299,14 +326,14 @@ export class PipelineRunner {
       }
 
       case 'agent5':
-        return 'agent3';
+        return 'fullScriptWriter';
 
       case 'gate3': {
         if (m.approval_status === 'REJECTED') {
           this.updateState({
             finalCheckLoops: this.state.finalCheckLoops + 1,
           });
-          return 'agent3';
+          return 'fullScriptWriter';
         }
         return 'agent6';
       }
