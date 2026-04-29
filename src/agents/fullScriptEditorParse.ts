@@ -82,11 +82,13 @@ export function parseFullScriptEditorOutput(raw: string): AuditResult {
     ? (obj.failed_segments as unknown[]).map((n) => Number(n)).filter((n) => !isNaN(n) && n >= 1 && n <= 7)
     : undefined;
 
+  const approved = obj.approval_status === 'APPROVED';
+
   return {
     approval_status: obj.approval_status as 'APPROVED' | 'REJECTED',
     has_feedback: hasFeedback,
     stories,
-    rewriter_instructions: String(obj.rewriter_instructions),
+    rewriter_instructions: approved ? 'All requirements passed. No changes needed.' : String(obj.rewriter_instructions),
     rewrite_scope: rewriteScope,
     failed_segments: rewriteScope === 'SEGMENTS' ? failedSegments : undefined,
   };
