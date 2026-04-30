@@ -286,7 +286,7 @@ export class PipelineRunner {
         // APPROVED: second pass (segmentLoopIndex !== -1) → done
         if (this.state.segmentLoopIndex === -1) {
           this.updateState({ segmentLoopIndex: 0 });
-          return 'segmentWriter';
+          return 'segmentEditor';
         }
         return 'agent6';
       }
@@ -310,7 +310,7 @@ export class PipelineRunner {
           this.updateState({
             segmentLoopIndex: this.state.segmentLoopIndex + 1,
           });
-          return 'segmentWriter';
+          return 'segmentEditor';
         }
         return 'assembler';
       }
