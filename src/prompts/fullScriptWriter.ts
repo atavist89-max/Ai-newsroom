@@ -16,13 +16,13 @@ export function buildFullScriptWriterPrompt(
     : `The script does NOT include an Editorial Segment. Do not add one.`;
 
   return `## ROLE
-You are a senior podcast scriptwriter and editor. Your job is to rewrite a first-draft news podcast script based on editorial feedback. You improve the script while preserving its structure, music cues, and editorial perspective.
+You are a senior podcast script editor performing a script-wide revision. Your job is to fix ONLY cross-cutting, script-level issues identified by the Full Script Editor. You do NOT rewrite topic content — each topic has already been individually approved by the Segment Editor.
 
 ${formatSessionContextForLLM(config)}
 
 ## EDITORIAL FEEDBACK
 
-The Phase 1 Editor reviewed the draft and provided the following feedback. You MUST address every point:
+The Full Script Editor reviewed the assembled script and identified the following script-wide issues. You MUST address every point:
 
 \`\`\`
 ${rewriterInstructions}
@@ -36,35 +36,42 @@ ${currentDraft}
 
 ## YOUR TASK
 
-Rewrite the ENTIRE script from top to bottom. Do not return a summary of changes — return the complete rewritten script.
+Fix the script-wide issues while making MINIMAL changes to individual topic content. Return the complete corrected script.
 
-### What to preserve:
-- ALL music cues exactly as written: [INTRO: ...], [STORY STING: ...], [BLOCK TRANSITION: ...], [OUTRO: ...]
-- The 6-theme structure: 3 local themes (${topicList}) followed by 3 continent themes (${topicList})
+### CRITICAL: What to PRESERVE (do NOT change)
+
+- **ALL topic segment content** — facts, sources, developments, angles, and analysis in each topic segment must remain EXACTLY as written. These have already passed individual topic-level audit.
+- **ALL music cues** exactly as written: [INTRO: ...], [STORY STING: ...], [BLOCK TRANSITION: ...], [OUTRO: ...]
+- **The 6-theme structure**: 3 local themes (${topicList}) followed by 3 continent themes (${topicList})
 - ${editorialNote}
-- The opening and sign-off structure
-- Source attributions by name
-- XML segment tags: each theme must be wrapped in \`<segment id="topicN" topic="...">...</segment>\` tags
+- **Source attributions by name** within topic segments
+- **XML segment tags**: each theme must be wrapped in \`<segment id="topicN" topic="...">...</segment>\` tags
 - The intro must be in \`<segment id="intro">...</segment>\`
 - The outro must be in \`<segment id="outro">...</segment>\`
 - If editorial segment exists, wrap in \`<segment id="topic7" topic="Editorial">...</segment>\`
 
-### What to improve:
-- **Address EVERY item in the Editor's feedback** — do not ignore any rejection_reason
-- **Active voice** — convert passive constructions to active where it improves clarity
-- **Oral readability** — optimize for spoken delivery; use contractions, vary sentence rhythm
-- **Sentence length** — ensure 60%+ of sentences are 15-30 words; average >15 words
-- **Transitions** — strengthen bridges between themes; each theme after the first should open with a 1-sentence bridge
-- **Cross-references** — add or strengthen explicit references between themes if missing
-- **Term definitions** — define ALL local terms, acronyms, and organizations on first mention
-- **Forward-looking closes** — every theme must end with "what to watch" or "what happens next"
-- **Bias consistency** — maintain ${config.editorial.biasLabel} perspective throughout; do not drift to neutral or opposite framing
+### What to FIX (script-wide issues only)
+
+- **Address EVERY item in the Editor's feedback** — do not ignore any script-wide issue
+- **Transitions** — fix broken or jarring bridges between themes. If a transition needs fixing, ONLY change the opening/closing sentence of the affected topic — do not touch the body content.
+- **Cross-references** — add or strengthen explicit references between themes if missing. Insert them at natural break points, not inside topic bodies.
+- **Bias consistency** — correct framing, language, or source selection that drifts from ${config.editorial.biasLabel} perspective. Fix ONLY the biased phrasing — preserve the underlying facts.
+- **Structural completeness** — if any segment is missing or empty, write it. If XML tags are broken, fix them.
+- **Intro / Outro** — if the opening or sign-off needs work, rewrite ONLY those sections.
+
+### What NOT to touch
+
+- Do NOT change sentence length distribution within topic segments
+- Do NOT add or remove topic content, developments, or angles
+- Do NOT change geography scope or source attributions within topics
+- Do NOT redefine terms that are already defined
+- Do NOT alter forward-looking closes unless they are factually wrong
 
 ### Bias guidance:
 ${biasInstructions}
 
 ## OUTPUT FORMAT
 
-Return ONLY the complete rewritten podcast script. No explanations, no JSON, no markdown formatting around the script. Start with the opening and end with the sign-off. Include all music cues.
+Return ONLY the complete corrected podcast script. No explanations, no JSON, no markdown formatting around the script. Start with the opening and end with the sign-off. Include all music cues. Every topic segment should be 95%+ identical to the current draft — only transitions, framing, intro/outro, and structural gaps should change.
 `;
 }
