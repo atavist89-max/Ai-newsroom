@@ -105,6 +105,18 @@ export interface AuditResult {
   failed_segments?: number[];
 }
 
+export interface MechanicalAudit {
+  pass: boolean;
+  length: { pass: boolean; actual: number; required: number };
+  sentenceStructure: {
+    pass: boolean;
+    avgWords: number;
+    percentInRange: number;
+    sentencesAnalyzed: number;
+    sentencesInRange: number;
+  };
+}
+
 export const STAGE_DEFINITIONS: Omit<StageRecord, 'status' | 'iteration' | 'reasoning' | 'output' | 'metadata' | 'startedAt' | 'completedAt'>[] = [
   { id: 'agent1', name: 'Researcher', shortName: 'Research', icon: 'Search' },
   { id: 'fullScriptEditor', name: 'Full Script Editor', shortName: 'Full Edit', icon: 'ClipboardCheck' },

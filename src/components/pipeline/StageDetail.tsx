@@ -387,6 +387,43 @@ function AuditTab({ stage, audit }: { stage: StageRecord; audit: AuditResult | u
         )}
       </div>
 
+      {/* Mechanical Results */}
+      {(() => {
+        const meta = stage.metadata as Record<string, unknown> | undefined;
+        const mech = meta?.mechanicalResult as Record<string, unknown> | undefined;
+        if (!mech) return null;
+        const mechPass = mech.pass === true;
+        const length = mech.length as Record<string, unknown> | undefined;
+        const sentence = mech.sentenceStructure as Record<string, unknown> | undefined;
+        return (
+          <div className="bg-slate-800/30 rounded border border-slate-700/30 px-3 py-2 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Mechanical Checks</span>
+              <span className={cn(
+                'text-[10px] px-1.5 py-0.5 rounded font-medium',
+                mechPass ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+              )}>
+                {mechPass ? 'PASS' : 'FAIL'}
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-400 space-y-0.5">
+              {length && (
+                <div className="flex items-center gap-1.5">
+                  <span className={cn('w-3 h-3 flex items-center justify-center rounded-full text-[7px] font-bold', (length.pass as boolean) ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400')}>{(length.pass as boolean) ? '✓' : '✗'}</span>
+                  <span>Length: {String(length.actual)} / {String(length.required)} chars</span>
+                </div>
+              )}
+              {sentence && (
+                <div className="flex items-center gap-1.5">
+                  <span className={cn('w-3 h-3 flex items-center justify-center rounded-full text-[7px] font-bold', (sentence.pass as boolean) ? 'bg-green-900/40 text-green-400' : 'bg-red-900/40 text-red-400')}>{(sentence.pass as boolean) ? '✓' : '✗'}</span>
+                  <span>Sentences: avg {(sentence.avgWords as number)} words, {(sentence.percentInRange as number)}% in 15-30 range ({(sentence.sentencesInRange as number)}/{(sentence.sentencesAnalyzed as number)})</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Script-wide audit notice (no per-theme breakdown) */}
       {!hasStories && (
         <div className="text-xs text-slate-400 bg-slate-800/30 rounded border border-slate-700/30 px-3 py-2">

@@ -3,6 +3,7 @@ import { loadApiConfig, streamLLM } from '../lib/apiConfig';
 import { buildSegmentWriterPrompt } from '../prompts/segmentWriter';
 import { writeSegment, writeFullScript, readAllSegments, type SegmentId } from '../lib/fileManager';
 import { parseFullScript, assembleFullScript, type Segment } from '../lib/scriptParser';
+import { validateMechanical, buildMechanicalFeedback } from '../lib/mechanicalValidator';
 
 const INDEX_TO_SEGMENT: SegmentId[] = [
   'topic1', 'topic2', 'topic3',
@@ -12,6 +13,8 @@ const INDEX_TO_SEGMENT: SegmentId[] = [
 const ALL_SEGMENT_IDS: SegmentId[] = [
   'intro', 'topic1', 'topic2', 'topic3', 'topic4', 'topic5', 'topic6', 'topic7', 'outro',
 ];
+
+const MAX_MECHANICAL_RETRIES = 3;
 
 export function createSegmentWriter(): AgentFn {
   return async (ctx, onReasoningChunk) => {
@@ -46,51 +49,97 @@ export function createSegmentWriter(): AgentFn {
       contextSegments[nextId] = allSegments[nextId];
     }
 
-    // Build prompt
-    onReasoningChunk(`Building segment rewrite prompt for ${targetSegmentId}...\n`);
-    const prompt = buildSegmentWriterPrompt(
-      sessionConfig,
-      contextSegments,
-      targetSegmentId,
-      rewriterInstructions,
-      ctx.iteration
-    );
+    // LLM rewrite loop with mechanical validation
+    let llmReasoning = '';
+    let mechanicalRetries = 0;
+    let finalSegmentContent = '';
+    let finalPrompt = '';
+    let finalDiagnostics: string[] = [];
 
-    // Stream to LLM
-    onReasoningChunk(`Sending ${targetSegmentId} to Segment Writer for targeted rewrite...\n\n`);
+    while (true) {
+      // Build prompt (first pass uses original feedback, retries use mechanical failure data)
+      const promptInstructions =
+        mechanicalRetries > 0
+          ? `${rewriterInstructions}\n\nMECHANICAL CORRECTION NEEDED (attempt ${mechanicalRetries}/${MAX_MECHANICAL_RETRIES}):\n${buildMechanicalFeedback(validateMechanical(finalSegmentContent))}\n\nFix the mechanical issues above while preserving all content fixes.`
+          : rewriterInstructions;
 
-    let response = '';
-    let reasoning = '';
-    const apiConfig = await loadApiConfig();
+      onReasoningChunk(
+        mechanicalRetries > 0
+          ? `Mechanical check failed. Retrying ${targetSegmentId} (${mechanicalRetries}/${MAX_MECHANICAL_RETRIES})...\n`
+          : `Building segment rewrite prompt for ${targetSegmentId}...\n`
+      );
 
-    const { diagnostics } = await streamLLM(apiConfig, prompt, {
-      onReasoningChunk: (chunk) => {
-        reasoning += chunk;
-        onReasoningChunk(chunk);
-      },
-      onContentChunk: (chunk) => {
-        response += chunk;
-        onReasoningChunk(chunk);
-      },
-      onError: (err) => {
-        throw err;
-      },
-      onDone: () => {
-        onReasoningChunk('\nSegment rewrite complete.\n');
-      },
-    });
+      const prompt = buildSegmentWriterPrompt(
+        sessionConfig,
+        contextSegments,
+        targetSegmentId,
+        promptInstructions,
+        ctx.iteration
+      );
+      finalPrompt = prompt;
 
-    // Parse rewritten segments from response
-    onReasoningChunk('Parsing rewritten segment...\n');
-    const rewrittenSegments = parseFullScript(response);
+      // Stream to LLM
+      onReasoningChunk(
+        mechanicalRetries > 0
+          ? `Sending ${targetSegmentId} to Segment Writer for mechanical correction...\n\n`
+          : `Sending ${targetSegmentId} to Segment Writer for targeted rewrite...\n\n`
+      );
 
-    // Write only the rewritten segment back to files
-    for (const seg of rewrittenSegments) {
-      if (seg.id === targetSegmentId) {
-        await writeSegment(seg.id, seg.content);
-        onReasoningChunk(`Updated ${seg.id}.txt (${seg.content.length} chars)\n`);
+      let response = '';
+      let reasoning = '';
+      const apiConfig = await loadApiConfig();
+
+      const { diagnostics } = await streamLLM(apiConfig, prompt, {
+        onReasoningChunk: (chunk) => {
+          reasoning += chunk;
+          onReasoningChunk(chunk);
+        },
+        onContentChunk: (chunk) => {
+          response += chunk;
+          onReasoningChunk(chunk);
+        },
+        onError: (err) => {
+          throw err;
+        },
+        onDone: () => {
+          onReasoningChunk('\nSegment rewrite complete.\n');
+        },
+      });
+
+      llmReasoning += reasoning;
+      finalDiagnostics = diagnostics;
+
+      // Parse rewritten segment
+      onReasoningChunk('Parsing rewritten segment...\n');
+      const rewrittenSegments = parseFullScript(response);
+      const targetSegment = rewrittenSegments.find((s) => s.id === targetSegmentId);
+
+      if (!targetSegment) {
+        throw new Error(`Segment Writer could not parse ${targetSegmentId} from LLM response`);
       }
+
+      finalSegmentContent = targetSegment.content;
+
+      // Validate mechanically
+      onReasoningChunk(`Running mechanical validation on rewritten ${targetSegmentId}...\n`);
+      const mechanicalResult = validateMechanical(finalSegmentContent);
+      const mechFeedback = buildMechanicalFeedback(mechanicalResult);
+      onReasoningChunk(`${mechFeedback}\n`);
+
+      if (mechanicalResult.pass || mechanicalRetries >= MAX_MECHANICAL_RETRIES) {
+        if (!mechanicalResult.pass) {
+          onReasoningChunk(`⚠️ Mechanical check still fails after ${MAX_MECHANICAL_RETRIES} retries. Proceeding with best effort.\n`);
+        }
+        break; // Exit loop
+      }
+
+      mechanicalRetries++;
+      onReasoningChunk(`Mechanical check failed. Building corrective prompt for retry ${mechanicalRetries}...\n`);
     }
+
+    // Write the final segment back to files
+    await writeSegment(targetSegmentId, finalSegmentContent);
+    onReasoningChunk(`Updated ${targetSegmentId}.txt (${finalSegmentContent.length} chars)\n`);
 
     // Read all segments (including unchanged ones) and assemble full script
     const updatedSegments = await readAllSegments();
@@ -113,11 +162,12 @@ export function createSegmentWriter(): AgentFn {
 
     return {
       draft: fullScript,
-      reasoning,
-      prompt,
+      reasoning: llmReasoning,
+      prompt: finalPrompt,
       metadata: {
         rewrittenSegmentId: targetSegmentId,
-        streamDiagnostics: diagnostics,
+        mechanicalRetries,
+        streamDiagnostics: finalDiagnostics,
       },
     };
   };

@@ -123,10 +123,19 @@ Reads `full_script.txt` and performs a script-wide audit. Checks three things on
 Called only when Pass 1 rejects. Receives script-wide feedback and fixes ONLY coherence, bias, and structural issues. Explicitly preserves all topic segment content (those have not yet been individually audited). Rewrites intro, outro, transition bridges, and bias framing. Loops back to Step 2 for re-audit.
 
 **Step 3 — Segment Editor (Topic N)**
-Reads the individual `TopicN.txt` file (NOT `full_script.txt`). Audits ONE topic against the 7 topic-level rules: Length, Depth, Sentence structure, Accessibility, Forward close, Source attribution, Geography. This is the first agent in the sequential topic loop.
+Reads the individual `TopicN.txt` file (NOT `full_script.txt`).
+
+1. **Mechanical validation** (pure code, microseconds): checks length (≥2000 chars) and sentence structure (avg >15, ≥60% in 15-30 range) automatically. Results shown in the UI with exact counts.
+2. **Qualitative audit** (LLM, 5 rules): DEPTH, ACCESSIBILITY, FORWARD_CLOSE, SOURCE_ATTRIBUTION, GEOGRAPHY.
+3. **Combined result**: mechanical PASS + qualitative PASS → APPROVED → next topic. Any failure → REJECTED → Step 3a.
 
 **Step 3a — Segment Writer (Topic N)**
-Called only when the Segment Editor rejects a topic. Reads the failing `TopicN.txt` plus adjacent segments for transition context. Rewrites ONLY that topic while preserving all others. Writes the new `TopicN.txt` back to disk and reassembles `full_script.txt`. Loops back to Step 3 for the same topic.
+Called only when the Segment Editor rejects a topic. Receives **combined feedback** (mechanical data + qualitative analysis).
+
+1. LLM rewrites the topic addressing ALL issues.
+2. **Internal mechanical loop**: after LLM output, pure code validates length and sentence structure. If mechanical check fails, the writer builds a corrective prompt with exact failure data and calls the LLM again (max 3 retries).
+3. Writes the final `TopicN.txt` back to disk and reassembles `full_script.txt`.
+4. Loops back to Step 3 for the same topic.
 
 **Steps 4–9 / 4a–9a — Repeat Steps 3–3a for Topics 2–7**
 The sequential topic loop advances one topic at a time. Each topic is audited first; only failing topics trigger a writer. The loop continues until all 7 topics pass.
@@ -189,26 +198,28 @@ Rejection:
 
 **Segment Editor** (topic-level audit — runs once per topic in sequential loop):
 
-A story **FAILS** if it violates **any** of the 7 rules:
+First, a **pure-code mechanical validator** runs automatically (microseconds, zero LLM cost):
+- **Length**: ≥2000 characters
+- **Sentence structure**: ≥60% of sentences are 15–30 words; average >15 words
+
+Then the **LLM evaluates 5 qualitative rules only**:
 
 | # | Rule | PASS Standard |
 |---|---|---|
-| 1 | **Length** | ≥2000 characters |
-| 2 | **Depth** | ≥3 distinct developments, events, or angles |
-| 3 | **Sentence structure** | ≥60% of sentences are 15–30 words; average >15 words |
-| 4 | **Accessibility** | Zero-knowledge listener can follow without Googling. Every term, acronym, organization defined on first mention |
-| 5 | **Forward close** | Ends with "what to watch" or "what happens next" |
-| 6 | **Source attribution** | Specific sources cited by name in the text |
-| 7 | **Geography** | Local themes = only chosen-country stories; Continent themes = only continent-country stories |
+| 1 | **Depth** | ≥3 distinct developments, events, or angles |
+| 2 | **Accessibility** | Zero-knowledge listener can follow without Googling. Every term, acronym, organization defined on first mention |
+| 3 | **Forward close** | Ends with "what to watch" or "what happens next" |
+| 4 | **Source attribution** | Specific sources cited by name in the text |
+| 5 | **Geography** | Local themes = only chosen-country stories; Continent themes = only continent-country stories |
 
 Approval:
-- ALL 7 rules PASS on the evaluated topic
+- Mechanical PASS + ALL 5 qualitative rules PASS
 - `approval_status`: `"APPROVED"`, `has_feedback`: `false`, `rewrite_scope`: `""`
 
 Rejection:
-- ANY rule fails → `rewrite_scope`: `"SEGMENTS"`, `failed_segments`: `[current story ID]`
+- Mechanical FAIL or ANY qualitative rule fails → `rewrite_scope`: `"SEGMENTS"`, `failed_segments`: `[current story ID]`
 - `approval_status`: `"REJECTED"`, `has_feedback`: `true`
-- `rewriter_instructions`: Specific, actionable fixes for the failing topic
+- `rewriter_instructions`: Combined mechanical data (exact counts) + qualitative feedback
 
 ### Agent Contracts
 

@@ -3,6 +3,7 @@ import { loadApiConfig, streamLLM } from '../lib/apiConfig';
 import { buildSegmentEditorPrompt } from '../prompts/segmentEditor';
 import { parseFullScriptEditorOutput } from './fullScriptEditorParse';
 import { readSegment, type SegmentId } from '../lib/fileManager';
+import { validateMechanical, buildMechanicalFeedback } from '../lib/mechanicalValidator';
 
 const INDEX_TO_SEGMENT: SegmentId[] = [
   'topic1', 'topic2', 'topic3',
@@ -31,7 +32,13 @@ export function createSegmentEditor(): AgentFn {
       throw new Error(`Segment Editor found empty segment: ${targetSegmentId}`);
     }
 
-    // Build prompt focused on single topic
+    // STEP 1: Run mechanical validation (pure code, fast)
+    onReasoningChunk(`Running mechanical checks on ${targetSegmentId}...\n`);
+    const mechanicalResult = validateMechanical(segmentContent);
+    const mechanicalFeedback = buildMechanicalFeedback(mechanicalResult);
+    onReasoningChunk(`${mechanicalFeedback}\n`);
+
+    // STEP 2: Build prompt with mechanical results included
     onReasoningChunk('Building segment audit prompt...\n');
     const prompt = buildSegmentEditorPrompt(
       sessionConfig,
@@ -39,11 +46,12 @@ export function createSegmentEditor(): AgentFn {
       targetSegmentId,
       targetStoryId,
       topicName,
+      mechanicalResult,
       ctx.iteration
     );
 
-    // Stream to LLM
-    onReasoningChunk(`Sending segment ${targetSegmentId} to Segment Editor for audit...\n\n`);
+    // STEP 3: Stream to LLM for qualitative audit
+    onReasoningChunk(`Sending segment ${targetSegmentId} to Segment Editor for qualitative audit...\n\n`);
 
     let response = '';
     let reasoning = '';
@@ -62,28 +70,49 @@ export function createSegmentEditor(): AgentFn {
         throw err;
       },
       onDone: () => {
-        onReasoningChunk('\nSegment audit complete. Parsing results...\n');
+        onReasoningChunk('\nQualitative audit complete. Parsing results...\n');
       },
     });
 
-    // Parse audit result
-    const auditResult = parseFullScriptEditorOutput(response);
+    // STEP 4: Parse qualitative audit result
+    const qualitativeResult = parseFullScriptEditorOutput(response);
+
+    // STEP 5: Combine mechanical + qualitative results
+    const overallApproved = mechanicalResult.pass && qualitativeResult.approval_status === 'APPROVED';
+    const combinedInstructions = overallApproved
+      ? 'All requirements passed. No changes needed.'
+      : [mechanicalFeedback, qualitativeResult.rewriter_instructions]
+          .filter((s) => s && s.length > 0 && !s.includes('All requirements passed'))
+          .join('\n\n');
+
+    const combinedResult = {
+      approval_status: overallApproved ? 'APPROVED' as const : 'REJECTED' as const,
+      has_feedback: !overallApproved,
+      stories: qualitativeResult.stories,
+      rewriter_instructions: combinedInstructions,
+      rewrite_scope: overallApproved ? undefined : 'SEGMENTS' as const,
+      failed_segments: overallApproved ? undefined : [targetStoryId],
+    };
 
     // Stream summary
-    const statusLine = auditResult.approval_status === 'APPROVED'
-      ? `✓ ${targetSegmentId} APPROVED${auditResult.has_feedback ? ' (with feedback)' : ' (clean pass)'}`
-      : `✗ ${targetSegmentId} REJECTED`;
+    const statusLine = combinedResult.approval_status === 'APPROVED'
+      ? `✓ ${targetSegmentId} APPROVED (mechanical + qualitative)`
+      : `✗ ${targetSegmentId} REJECTED (${mechanicalResult.pass ? 'qualitative' : 'mechanical'} failed)`;
     onReasoningChunk(`\n${statusLine}\n`);
 
-    if (auditResult.has_feedback && auditResult.rewriter_instructions) {
-      onReasoningChunk(`\nFeedback:\n${auditResult.rewriter_instructions}\n`);
+    if (combinedResult.has_feedback) {
+      onReasoningChunk(`\nCombined Feedback:\n${combinedResult.rewriter_instructions}\n`);
     }
 
     return {
-      draft: currentDraft, // Editor does not rewrite — passes through unchanged
+      draft: currentDraft,
       reasoning,
       prompt,
-      metadata: { ...auditResult, streamDiagnostics: diagnostics },
+      metadata: {
+        ...combinedResult,
+        mechanicalResult,
+        streamDiagnostics: diagnostics,
+      },
     };
   };
 }
