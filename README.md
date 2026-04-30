@@ -48,97 +48,100 @@ The AI Newsroom pipeline is a state machine that orchestrates seven specialized 
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        FULL PIPELINE FLOW                               │
 └─────────────────────────────────────────────────────────────────────────┘
-
-  ┌─────────────┐
-  │  Researcher │  Queries Brave Search, writes XML segments to files
-  │  (Agent 1)  │
-  └──────┬──────┘
-         │
-         ▼
-  ┌─────────────────┐
-  │ Full Script     │  Pass 1: Checks script-wide coherence, bias,
-  │ Editor (Pass 1) │  structural completeness. Binary pass/fail.
-  └──────┬──────────┘
-         │
-    ┌────┴────┐
-    │         │
- REJECTED   APPROVED
-    │         │
-    ▼         │
- ┌─────────────┐    │
- │ Full Script │◄───┘
- │ Writer      │
- │ (fixes      │
- │  script-    │
- │  wide only) │
- └──────┬──────┘
-        │
-        └──────► (loop back to Pass 1)
-                 │
-                 ▼
-        ┌─────────────────────────────┐
-        │   SEQUENTIAL TOPIC LOOP     │
-        │                             │
-        │   For each topic 1 ──► 7:   │
-        │                             │
-        │   ┌─────────────────┐       │
-        │   │ Segment Editor  │       │
-        │   │ (reads TopicN)  │       │
-        │   └────────┬────────┘       │
-        │            │                │
-        │      ┌─────┴─────┐          │
-        │      │           │          │
-        │   APPROVED    REJECTED       │
-        │      │           │          │
-        │      │           ▼          │
-        │      │    ┌─────────────┐   │
-        │      │    │ Segment     │   │
-        │      │    │ Writer      │   │
-        │      │    │ (rewrites   │   │
-        │      │    │  1 topic)   │   │
-        │      │    └──────┬──────┘   │
-        │      │           │          │
-        │      └───────────┘          │
-        │         (loop on same       │
-        │          topic until pass)  │
-        │                             │
-        └─────────────────────────────┘
-                      │
-                      ▼ (all 7 topics passed)
-               ┌─────────────┐
-               │  Assembler  │  Pure code: concatenates segments
-               └──────┬──────┘
+┌─────────────────────────────────────────────┐
+│  STEP 1: RESEARCHER                         │
+│  Query news → Write draft segments          │
+└─────────────────────────────────────────────┘
                       │
                       ▼
-               ┌─────────────────┐
-               │ Full Script     │  Pass 2: Re-checks coherence &
-               │ Editor (Pass 2) │  bias after topic rewrites
-               └──────┬──────────┘
+┌─────────────────────────────────────────────┐
+│  STEP 2: FULL SCRIPT EDITOR  (Pass 1)       │
+│  Check: segments present, coherence, bias   │
+└─────────────────────────────────────────────┘
+                           │
+        ┌─────────────┴──────────────────────────────────┐
+        │      APPROVED                      REJECTED    │
+        ▼                                                ▼
+┌───────────────┐                             ┌─────────────────────────┐
+│               │                             │  STEP 2a: FULL SCRIPT   │
+│  ╔════════════╧══════════════════════════╗  │  WRITER                 │
+│  ║  TOPIC LOOP (Steps 3–9a)              ║  │  Fix script-wide issues │
+│  ║                                       ║  │                         │
+│  ║  Step 3:  Segment Editor              ║  │  └─► back to Step 2     │
+│  ║           (Topic N)                   ║  └─────────────────────────┘
+│  ║           ├─ APPROVED ─► next topic   ║    
+│  ║           └─ REJECTED ─► Step 3a      ║   
+│  ║                                       ║           
+│  ║  Step 3a: Segment Writer              ║
+│  ║           (Topic N)                   ║ 
+│  ║           └─► back to Step 3          ║  
+│  ║                                       ║ 
+│  ║  Repeats for N = 1 → 7                ║
+│  ╚═════════════════╤═════════════════════╝ 
+│                    │                             
+│                    └─► after Topic 7 approved ──
+│                                                ▼
+┌─────────────────┐           ┌─────────────────────────┐
+│  STEP 10        │           │  STEP 3a–9a: SEGMENT    │
+│  ASSEMBLER      │           │  WRITER (Topic N)       │
+│  (pure code)    │           │  Rewrite failing topic  │
+│  Concatenate    │           │  only, preserve rest    │
+│  all TopicN.txt │           │                         │
+└─────────────────┘           │  └─► back to Step 3     │
+        │                     └─────────────────────────┘
+        │
+        ▼
+┌──────────────────────────────────────────────┐
+│  STEP 11: FULL SCRIPT EDITOR  (Pass 2)       │
+│  Verify coherence & bias after rewrites      │
+└──────────────────────────────────────────────┘
                       │
-                 ┌────┴────┐
-                 │         │
-              REJECTED   APPROVED
-                 │         │
-                 ▼         │
-          ┌─────────────┐  │
-          │ Full Script │◄─┘
-          │ Writer      │
-          │ (preserves  │
-          │  topics)    │
-          └──────┬──────┘
-                 │
-                 └──────► (loop back to Pass 2)
-                          │
-                          ▼
-                   ┌─────────────┐
-                   │   Audio     │
-                   │  Producer   │
-                   │  (Agent 6)  │
-                   └─────────────┘
-                          │
-                          ▼
-                     ✅ COMPLETE
+        ┌─────────────┴───────────────────────┐
+        │      APPROVED             REJECTED  │      
+        ▼                                     ▼
+┌─────────────────┐       ┌─────────────────────────┐
+│  STEP 12        │       │  STEP 11a: FULL SCRIPT  │
+│  AUDIO PRODUCER │       │  WRITER                 │
+│  (agent6)       │       │  Fix script-wide issues │
+│  Strip XML →    │       │                         │
+│  Generate audio │       │  └─► back to Step 11    │
+└─────────────────┘       │                         │
+        │                 └─────────────────────────┘
+        ▼                       
+       ✅ COMPLETE               
 ```
+
+### Step-by-Step Breakdown
+
+**Step 1 — Researcher**
+Queries Brave Search for local and continent news across your 3 selected topics. Streams results to the LLM and writes the first draft as XML-tagged segments: `intro.txt`, `Topic1.txt` through `Topic7.txt`, and `outro.txt`. Also writes the assembled `full_script.txt`.
+
+**Step 2 — Full Script Editor (Pass 1)**
+Reads `full_script.txt` and performs a script-wide audit. Checks three things only: (1) all segments are present and XML tags are intact, (2) cross-theme coherence (transitions, progression, cross-references, tone), and (3) bias consistency across the entire script. Returns a binary pass/fail — no per-topic breakdown.
+
+**Step 2a — Full Script Writer (loop on Step 2)**
+Called only when Pass 1 rejects. Receives script-wide feedback and fixes ONLY coherence, bias, and structural issues. Explicitly preserves all topic segment content (those have not yet been individually audited). Rewrites intro, outro, transition bridges, and bias framing. Loops back to Step 2 for re-audit.
+
+**Step 3 — Segment Editor (Topic N)**
+Reads the individual `TopicN.txt` file (NOT `full_script.txt`). Audits ONE topic against the 7 topic-level rules: Length, Depth, Sentence structure, Accessibility, Forward close, Source attribution, Geography. This is the first agent in the sequential topic loop.
+
+**Step 3a — Segment Writer (Topic N)**
+Called only when the Segment Editor rejects a topic. Reads the failing `TopicN.txt` plus adjacent segments for transition context. Rewrites ONLY that topic while preserving all others. Writes the new `TopicN.txt` back to disk and reassembles `full_script.txt`. Loops back to Step 3 for the same topic.
+
+**Steps 4–9 / 4a–9a — Repeat Steps 3–3a for Topics 2–7**
+The sequential topic loop advances one topic at a time. Each topic is audited first; only failing topics trigger a writer. The loop continues until all 7 topics pass.
+
+**Step 10 — Assembler**
+Pure code stage — no LLM call. Reads all individual `TopicN.txt` files, concatenates them in order (intro → topic1–7 → outro), and writes the final `full_script.txt`.
+
+**Step 11 — Full Script Editor (Pass 2)**
+Reads the assembled `full_script.txt` after all topic rewrites. Performs the same 3 script-wide checks as Pass 1. Verifies that the per-topic rewrites did not break coherence or bias consistency.
+
+**Step 11a — Full Script Writer (loop on Step 11)**
+Called only when Pass 2 rejects. Same constraints as Step 2a — fixes script-wide issues only, preserves all topic content. Loops back to Step 11 for re-audit. After Pass 2 approves, the pipeline proceeds directly to Audio Producer — the topic loop does NOT re-run.
+
+**Step 12 — Audio Producer**
+Strips XML tags from `full_script.txt` for TTS. Generates narration with the selected voice, mixes music stings and transitions, and assembles the final audio file. Pipeline complete.
 
 ### Rejection Loops
 
