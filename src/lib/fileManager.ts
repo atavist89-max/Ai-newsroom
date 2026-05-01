@@ -288,9 +288,14 @@ export async function appendAudioChunk(filename: string, chunk: Uint8Array | Int
   const dir = await getTargetDirectory();
   const path = `${BASE_DIR}/${filename}`;
   // Convert small chunk to base64 (chunk is typically a few KB)
+  // Int8Array from lamejs may contain negative bytes; btoa requires Latin1 (0-255).
+  // View the same buffer as Uint8Array to get unsigned byte values.
+  const bytes = chunk instanceof Int8Array
+    ? new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)
+    : chunk;
   let binary = '';
-  for (let i = 0; i < chunk.length; i++) {
-    binary += String.fromCharCode(chunk[i]);
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
   const base64 = btoa(binary);
   try {
