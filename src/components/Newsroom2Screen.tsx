@@ -6,7 +6,7 @@ import { countries, continents } from '../data/countries';
 import { timeframes } from '../data/timeframes';
 import { topics } from '../data/topics';
 import { voices } from '../data/voices';
-import { musicStyles, defaultMusicSuite } from '../data/music';
+import { musicStyles, defaultMusicSuite, getMusicPreviewPath } from '../data/music';
 import { biasOptions, biasAgent1Instructions } from '../data/bias';
 import { BiasSelector } from './BiasSelector';
 import { CountryMap } from './CountryMap';
@@ -134,8 +134,7 @@ export default function Newsroom2Screen({ sessionContext: _sessionContext, onSes
       return;
     }
     try {
-      const audioPrefix = category === 'storySting' ? 'story' : category === 'blockSting' ? 'block' : category;
-      const audio = new Audio(`./audio/${audioPrefix}_${style.id}.mp3`);
+      const audio = new Audio(getMusicPreviewPath(category as 'intro' | 'outro' | 'storySting' | 'blockSting', style.id));
       musicAudioRef.current = audio;
       audio.addEventListener('ended', () => {
         setPlayingMusic(null);

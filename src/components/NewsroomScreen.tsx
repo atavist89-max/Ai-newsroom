@@ -6,7 +6,7 @@ import { continents } from '../data/countries';
 import { timeframes } from '../data/timeframes';
 import { topics } from '../data/topics';
 import { voices } from '../data/voices';
-import { musicStyles, defaultMusicSuite } from '../data/music';
+import { musicStyles, defaultMusicSuite, getMusicPreviewPath } from '../data/music';
 import { biasOptions, biasAgent1Instructions, biasEditorialGuidelines } from '../data/bias';
 import { formatSessionContextForLLM } from '../lib/sessionConfig';
 import type { SessionConfig } from '../lib/sessionConfig';
@@ -123,8 +123,7 @@ export default function NewsroomScreen({ sessionConfig }: NewsroomScreenProps) {
       return;
     }
     try {
-      const audioPrefix = category === 'storySting' ? 'story' : category === 'blockSting' ? 'block' : category;
-      const audio = new Audio(`./audio/${audioPrefix}_${style.id}.mp3`);
+      const audio = new Audio(getMusicPreviewPath(category as 'intro' | 'outro' | 'storySting' | 'blockSting', style.id));
       musicAudioRef.current = audio;
       audio.addEventListener('ended', () => {
         setPlayingMusic(null);
