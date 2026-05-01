@@ -1,8 +1,20 @@
-import { Mp3Encoder } from 'lamejs';
-
 const MP3_BITRATE = 128;
 
-export function createMp3Encoder(sampleRate: number): Mp3Encoder {
+// lamejs is loaded via a classic <script> tag (public/lamejs/lame.all.js)
+// to avoid Vite/Rollup CJS bundling issues with the MPEGMode dependency.
+const _lamejs = (window as any).lamejs;
+const Mp3Encoder = _lamejs?.Mp3Encoder as Mp3EncoderCtor;
+
+interface Mp3EncoderCtor {
+  new (channels: number, samplerate: number, kbps: number): Mp3EncoderInstance;
+}
+
+interface Mp3EncoderInstance {
+  encodeBuffer(left: Int16Array, right?: Int16Array): Int8Array;
+  flush(): Int8Array;
+}
+
+export function createMp3Encoder(sampleRate: number): Mp3EncoderInstance {
   return new Mp3Encoder(2, sampleRate, MP3_BITRATE);
 }
 
@@ -23,7 +35,7 @@ function extractChannelInt16(buffer: AudioBuffer, channelIndex: number): Int16Ar
  * Encode an AudioBuffer to MP3 frames.
  * Mono buffers are automatically duplicated to stereo.
  */
-export function encodeAudioBuffer(encoder: Mp3Encoder, buffer: AudioBuffer): Int8Array {
+export function encodeAudioBuffer(encoder: Mp3EncoderInstance, buffer: AudioBuffer): Int8Array {
   const left = extractChannelInt16(buffer, 0);
   const right = buffer.numberOfChannels > 1
     ? extractChannelInt16(buffer, 1)
@@ -34,6 +46,6 @@ export function encodeAudioBuffer(encoder: Mp3Encoder, buffer: AudioBuffer): Int
 /**
  * Finalize the encoder and return the remaining MP3 frames.
  */
-export function flushEncoder(encoder: Mp3Encoder): Int8Array {
+export function flushEncoder(encoder: Mp3EncoderInstance): Int8Array {
   return encoder.flush();
 }
