@@ -24,7 +24,7 @@ export const musicStyles: MusicStyle[] = [
   },
   {
     id: 'pro_newscast_d',
-    name: 'Professional newscast Style',
+    name: 'Evening Report',
     description: 'Classic news transition sting',
     duration: '3s',
     mood: 'authoritative, urgent'
@@ -63,7 +63,7 @@ export const musicSuites: MusicSuite[] = [
     blockSting: musicStyles[3]
   },
   {
-    name: 'Professional newscast Suite',
+    name: 'Evening Report Suite',
     intro: musicStyles[3],
     outro: musicStyles[3],
     storySting: musicStyles[2],

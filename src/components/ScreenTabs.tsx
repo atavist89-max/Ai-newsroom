@@ -1,6 +1,6 @@
 import { cn } from '../lib/utils';
 
-type Screen = 'newsroom' | 'newsroom2' | 'configure';
+type Screen = 'newsroom' | 'configure';
 
 interface ScreenTabsProps {
   activeScreen: Screen;
@@ -20,17 +20,6 @@ export default function ScreenTabs({ activeScreen, onChange }: ScreenTabsProps) 
         )}
       >
         Newsroom
-      </button>
-      <button
-        onClick={() => onChange('newsroom2')}
-        className={cn(
-          'flex-1 py-3 text-sm font-medium transition-all text-center',
-          activeScreen === 'newsroom2'
-            ? 'bg-blue-600 text-white'
-            : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
-        )}
-      >
-        Newsroom 2
       </button>
       <button
         onClick={() => onChange('configure')}

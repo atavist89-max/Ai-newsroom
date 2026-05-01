@@ -356,7 +356,6 @@ Everything bundles into the APK. No external web server. No cloud backend. The a
 │   │   ├── CountryMap.tsx
 │   │   ├── CountrySearch.tsx
 │   │   ├── NewsroomScreen.tsx
-│   │   ├── Newsroom2Screen.tsx
 │   │   └── ScreenTabs.tsx
 │   ├── data/                 # Static data & configuration
 │   │   ├── bias.ts

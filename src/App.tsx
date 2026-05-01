@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { Toaster } from 'sonner';
 import NewsroomScreen from './components/NewsroomScreen';
-import Newsroom2Screen from './components/Newsroom2Screen';
 import ConfigureApiScreen from './components/ConfigureApiScreen';
 import ScreenTabs from './components/ScreenTabs';
 import type { SessionConfig } from './lib/sessionConfig';
 
-type Screen = 'newsroom' | 'newsroom2' | 'configure';
+type Screen = 'newsroom' | 'configure';
 
 function App() {
   const [activeScreen, setActiveScreen] = useState<Screen>('newsroom');
@@ -16,8 +15,7 @@ function App() {
     <div className="min-h-screen bg-slate-950 text-slate-200">
       <Toaster position="top-right" theme="dark" />
       <ScreenTabs activeScreen={activeScreen} onChange={setActiveScreen} />
-      {activeScreen === 'newsroom' && <NewsroomScreen sessionConfig={sessionContext} />}
-      {activeScreen === 'newsroom2' && <Newsroom2Screen sessionContext={sessionContext} onSessionContextChange={setSessionContext} />}
+      {activeScreen === 'newsroom' && <NewsroomScreen sessionContext={sessionContext} onSessionContextChange={setSessionContext} />}
       {activeScreen === 'configure' && <ConfigureApiScreen />}
     </div>
   );
