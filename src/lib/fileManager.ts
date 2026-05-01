@@ -293,6 +293,33 @@ export async function appendAudioChunk(filename: string, chunk: Uint8Array | Int
 }
 
 /**
+ * Export a finished podcast from app-private storage to Documents/Newsroom.
+ * Returns true if the copy succeeded, false otherwise.
+ */
+export async function exportPodcastToDocuments(filename: string): Promise<boolean> {
+  const srcPath = `${BASE_DIR}/${filename}`;
+  const dstPath = `${BASE_DIR}/${filename}`;
+  try {
+    // Read from app-private storage
+    const result = await Filesystem.readFile({
+      path: srcPath,
+      directory: Directory.Data,
+    });
+    // Write to Documents
+    await Filesystem.writeFile({
+      path: dstPath,
+      data: result.data as string,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+    return true;
+  } catch (err) {
+    console.error(`[fileManager] Failed to export podcast to Documents:`, err);
+    return false;
+  }
+}
+
+/**
  * Read an audio file as a Uint8Array.
  */
 export async function readAudioFileBinary(filename: string): Promise<Uint8Array | null> {

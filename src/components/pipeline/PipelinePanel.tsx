@@ -6,7 +6,7 @@ import type { PipelineState, StageId } from '../../lib/pipelineTypes';
 import type { SessionConfig } from '../../lib/sessionConfig';
 import StageStrip from './StageStrip';
 import StageDetail from './StageDetail';
-import { readAudioFileBinary } from '../../lib/fileManager';
+import { readAudioFileBinary, exportPodcastToDocuments } from '../../lib/fileManager';
 import { loadTestMode } from '../../lib/apiConfig';
 import { Play, Square, Loader2, AlertCircle, CheckCircle2, Headphones, Pause } from 'lucide-react';
 
@@ -64,6 +64,17 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
           }
         } catch (err) {
           console.error('Failed to load podcast:', err);
+        }
+        // Auto-export to Documents/Newsroom (best-effort)
+        try {
+          const exported = await exportPodcastToDocuments('podcast.mp3');
+          if (exported) {
+            console.log('[PipelinePanel] Podcast exported to Documents/Newsroom');
+          } else {
+            console.log('[PipelinePanel] Podcast export to Documents failed — file remains in app-private storage');
+          }
+        } catch (err) {
+          console.error('[PipelinePanel] Export error:', err);
         }
       },
       onError: (error) => {
