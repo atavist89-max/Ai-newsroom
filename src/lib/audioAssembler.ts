@@ -7,7 +7,6 @@ import { createAudioFile, appendAudioChunk } from './fileManager';
 
 const SAMPLE_RATE = 44100;
 const GAP_SECONDS = 0.5;
-const PODCAST_FILENAME = 'podcast.mp3';
 const TTS_CHAR_LIMIT = 4000;
 const TTS_CHUNK_TARGET = 3000;
 
@@ -175,6 +174,8 @@ export interface ProducePodcastResult {
   durationSeconds: number;
 }
 
+export const DEFAULT_PODCAST_FILENAME = 'podcast.mp3';
+
 /**
  * Produce a complete podcast by combining music stings and TTS narration.
  * Uses streamed MP3 encoding: each segment is rendered independently and
@@ -187,7 +188,8 @@ export async function producePodcast(
   musicSuite: { intro: string; outro: string; storySting: string; blockSting: string } | undefined,
   ttsApiKey: string,
   voiceInstructions: string,
-  onProgress: (msg: string) => void
+  onProgress: (msg: string) => void,
+  outputFileName: string = DEFAULT_PODCAST_FILENAME
 ): Promise<ProducePodcastResult> {
   let segmentCount = 0;
   let totalDurationSeconds = 0;
@@ -202,7 +204,7 @@ export async function producePodcast(
 
   // Create empty output file on disk
   onProgress('Creating output file...');
-  await createAudioFile(PODCAST_FILENAME);
+  await createAudioFile(outputFileName);
 
   // Helper to process one segment (music + narration)
   const processSegment = async (
@@ -264,7 +266,7 @@ export async function producePodcast(
 
       // Encode to MP3 and append to file
       const mp3Chunk = encodeAudioBuffer(mp3Encoder, segmentBuf);
-      await appendAudioChunk(PODCAST_FILENAME, mp3Chunk);
+      await appendAudioChunk(outputFileName, mp3Chunk);
 
       // Explicitly release references for GC
       segmentBuf;
@@ -316,16 +318,16 @@ export async function producePodcast(
   onProgress('Finalizing MP3...');
   const finalChunk = flushEncoder(mp3Encoder);
   if (finalChunk.length > 0) {
-    await appendAudioChunk(PODCAST_FILENAME, finalChunk);
+    await appendAudioChunk(outputFileName, finalChunk);
   }
 
   // Clean up shared AudioContext
   await audioCtx.close();
 
-  onProgress(`Podcast complete: ${PODCAST_FILENAME} (${totalDurationSeconds.toFixed(1)}s)`);
+  onProgress(`Podcast complete: ${outputFileName} (${totalDurationSeconds.toFixed(1)}s)`);
 
   return {
-    podcastFileName: PODCAST_FILENAME,
+    podcastFileName: outputFileName,
     segmentCount,
     durationSeconds: totalDurationSeconds,
   };

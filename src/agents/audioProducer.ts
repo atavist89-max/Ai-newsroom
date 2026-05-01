@@ -4,6 +4,7 @@ import { producePodcast } from '../lib/audioAssembler';
 import { loadTtsApiKey } from '../lib/apiConfig';
 import { voiceInstructions } from '../data/voices';
 import { musicStyles } from '../data/music';
+import { getPodcastFileName } from '../lib/sessionConfig';
 
 export function createAudioProducer(): AgentFn {
   return async (ctx, onReasoningChunk) => {
@@ -38,6 +39,9 @@ export function createAudioProducer(): AgentFn {
 
     const instructions = voiceInstructions[voice.voiceId] ?? '';
 
+    // Generate filename from session config
+    const outputFileName = getPodcastFileName(sessionConfig);
+
     // Produce podcast (file is written incrementally to disk)
     const result = await producePodcast(
       segments,
@@ -45,7 +49,8 @@ export function createAudioProducer(): AgentFn {
       musicSuite,
       ttsApiKey,
       instructions,
-      (msg) => onReasoningChunk(msg + '\n')
+      (msg) => onReasoningChunk(msg + '\n'),
+      outputFileName
     );
 
     onReasoningChunk(`Saved ${result.podcastFileName}\n`);

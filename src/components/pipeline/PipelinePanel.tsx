@@ -8,6 +8,7 @@ import StageStrip from './StageStrip';
 import StageDetail from './StageDetail';
 import { readAudioFileBinary, exportPodcastToDocuments } from '../../lib/fileManager';
 import { loadTestMode } from '../../lib/apiConfig';
+import { getPodcastFileName } from '../../lib/sessionConfig';
 import { Play, Square, Loader2, AlertCircle, CheckCircle2, Headphones, Pause } from 'lucide-react';
 
 interface PipelinePanelProps {
@@ -47,6 +48,8 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
   }, [state.currentStageId, state.status]);
 
   const handleRun = useCallback(() => {
+    const outputFileName = getPodcastFileName(sessionConfig);
+
     const agents = createAgentMap();
     const runner = new PipelineRunner(agents, {
       onStateChange: (newState) => {
@@ -56,7 +59,7 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
         console.log('Pipeline complete:', draft);
         // Try to load the produced podcast
         try {
-          const bytes = await readAudioFileBinary('podcast.mp3');
+          const bytes = await readAudioFileBinary(outputFileName);
           if (bytes) {
             const blob = new Blob([bytes.buffer as ArrayBuffer], { type: 'audio/mpeg' });
             const url = URL.createObjectURL(blob);
@@ -67,7 +70,7 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
         }
         // Auto-export to Documents/Newsroom (best-effort)
         try {
-          const exported = await exportPodcastToDocuments('podcast.mp3');
+          const exported = await exportPodcastToDocuments(outputFileName);
           if (exported) {
             console.log('[PipelinePanel] Podcast exported to Documents/Newsroom');
           } else {
@@ -84,7 +87,7 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
 
     runnerRef.current = runner;
     runner.run(sessionConfig, testMode);
-  }, [sessionConfig]);
+  }, [sessionConfig, testMode]);
 
   const handleStop = useCallback(() => {
     runnerRef.current?.stop();

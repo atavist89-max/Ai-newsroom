@@ -131,6 +131,18 @@ export function buildSessionConfig(params: BuildSessionConfigParams): SessionCon
 }
 
 /**
+ * Generate a human-readable podcast filename from session config.
+ * Format: "{Country} {Timeframe} Report - YYYY-MM-DD.mp3"
+ */
+export function getPodcastFileName(config: SessionConfig): string {
+  const country = config.geography.country.name;
+  const timeframe = config.dates.timeframeLabel;
+  const date = config.dates.today;
+  const safeCountry = country.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+  return `${safeCountry} ${timeframe} Report - ${date}.mp3`;
+}
+
+/**
  * Formats SessionConfig as a markdown block for LLM prompts.
  * Use this when injecting context into a prompt.
  */
