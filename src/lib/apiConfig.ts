@@ -49,9 +49,12 @@ export async function callLLM(
 
   const body = buildLlmBody(config.model || 'gpt-4o', [
     { role: 'user', content: prompt },
-  ]);
+  ], {
+    maxTokens: 24000,
+    enableThinking: true,
+  });
 
-  const response = await fetchWithAdaptiveRetry(url, {
+  const { response } = await fetchWithAdaptiveRetry(url, {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${config.apiKey}`,
   }, body);
@@ -88,19 +91,18 @@ export async function streamLLM(
   let finishReason: string | null = null;
   let doneViaDone = false;
 
-  const isReasoningModel = /kimi|deepseek|reasoning|thinking|r1/i.test(config.model);
   const requestBody = buildLlmBody(
     config.model || 'gpt-4o',
     [{ role: 'user', content: prompt }],
     {
       stream: true,
-      maxTokens: isReasoningModel ? 24000 : 8000,
-      enableThinking: /kimi/i.test(config.model),
+      maxTokens: 24000,
+      enableThinking: true,
     }
   );
 
   try {
-    const response = await fetchWithAdaptiveRetry(url, {
+    const { response } = await fetchWithAdaptiveRetry(url, {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.apiKey}`,
     }, requestBody);
@@ -298,7 +300,7 @@ export async function testBraveApiKey(key: string): Promise<{ success: boolean; 
   }
 }
 
-export async function testApiConnection(config: ApiConfig): Promise<{ success: boolean; message: string }> {
+export async function testApiConnection(config: ApiConfig): Promise<{ success: boolean; message: string; requestBody?: Record<string, unknown> }> {
   try {
     if (!config.apiKey.trim()) {
       return { success: false, message: 'API key is required' };
@@ -311,15 +313,15 @@ export async function testApiConnection(config: ApiConfig): Promise<{ success: b
     const body = buildLlmBody(
       config.model || 'gpt-4o',
       [{ role: 'user', content: 'Say "OK" and nothing else.' }],
-      { maxTokens: 5 }
+      { maxTokens: 24000, enableThinking: true }
     );
 
-    await fetchWithAdaptiveRetry(url, {
+    const { finalBody } = await fetchWithAdaptiveRetry(url, {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.apiKey}`,
     }, body);
 
-    return { success: true, message: 'Connection successful!' };
+    return { success: true, message: 'Connection successful!', requestBody: finalBody };
   } catch (err) {
     return { success: false, message: `Connection failed: ${err instanceof Error ? err.message : String(err)}` };
   }

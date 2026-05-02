@@ -19,7 +19,7 @@ export default function ConfigureApiScreen() {
   const [showTtsKey, setShowTtsKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; requestBody?: Record<string, unknown> } | null>(null);
   const [isTestingBrave, setIsTestingBrave] = useState(false);
   const [braveTestResult, setBraveTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingTts, setIsTestingTts] = useState(false);
@@ -365,16 +365,28 @@ export default function ConfigureApiScreen() {
 
         {/* Test Result */}
         {testResult && (
-          <div
-            className={cn(
-              'flex items-center gap-3 px-4 py-3 rounded-lg border',
-              testResult.success
-                ? 'bg-green-900/20 border-green-500/30 text-green-300'
-                : 'bg-red-900/20 border-red-500/30 text-red-300'
+          <div className="space-y-2">
+            <div
+              className={cn(
+                'flex items-center gap-3 px-4 py-3 rounded-lg border',
+                testResult.success
+                  ? 'bg-green-900/20 border-green-500/30 text-green-300'
+                  : 'bg-red-900/20 border-red-500/30 text-red-300'
+              )}
+            >
+              {testResult.success ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <XCircle className="w-5 h-5 flex-shrink-0" />}
+              <span className="text-sm">{testResult.message}</span>
+            </div>
+            {testResult.requestBody && (
+              <details className="bg-slate-900/50 border border-slate-700 rounded-lg">
+                <summary className="px-4 py-2 text-xs font-medium text-slate-400 cursor-pointer hover:text-slate-300 select-none">
+                  Show request parameters
+                </summary>
+                <pre className="px-4 pb-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-x-auto">
+                  {JSON.stringify(testResult.requestBody, null, 2)}
+                </pre>
+              </details>
             )}
-          >
-            {testResult.success ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <XCircle className="w-5 h-5 flex-shrink-0" />}
-            <span className="text-sm">{testResult.message}</span>
           </div>
         )}
       </main>

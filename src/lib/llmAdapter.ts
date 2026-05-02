@@ -115,7 +115,7 @@ export async function fetchWithAdaptiveRetry(
   headers: Record<string, string>,
   body: Record<string, unknown>,
   maxRetries = 2
-): Promise<Response> {
+): Promise<{ response: Response; finalBody: Record<string, unknown> }> {
   let currentBody = { ...body };
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -126,7 +126,7 @@ export async function fetchWithAdaptiveRetry(
     });
 
     if (response.ok) {
-      return response;
+      return { response, finalBody: currentBody };
     }
 
     // Only attempt fixes for 4xx errors (bad request / unsupported parameter)
