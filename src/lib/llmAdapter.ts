@@ -24,7 +24,7 @@ interface ParameterFix {
 const KNOWN_FIXES: ParameterFix[] = [
   // OpenAI newer models (o1, o3, gpt-5.x) reject max_tokens
   {
-    pattern: /Unsupported parameter: ['"]?max_tokens['"]?(?:[\s\S]*?Use ['"]?max_completion_tokens['"]? instead)?/i,
+    pattern: /(?:Unsupported|Unknown|Unrecognized)\s+(?:parameter|request argument(?:\s+supplied)?):?\s*['"]?max_tokens['"]?(?:[\s\S]*?Use ['"]?max_completion_tokens['"]? instead)?/i,
     fix: (body) => {
       if (!('max_tokens' in body)) return null;
       const { max_tokens, ...rest } = body;
@@ -33,7 +33,7 @@ const KNOWN_FIXES: ParameterFix[] = [
   },
   // Some older models or non-OpenAI providers reject max_completion_tokens
   {
-    pattern: /Unsupported parameter: ['"]?max_completion_tokens['"]?(?:[\s\S]*?Use ['"]?max_tokens['"]? instead)?/i,
+    pattern: /(?:Unsupported|Unknown|Unrecognized)\s+(?:parameter|request argument(?:\s+supplied)?):?\s*['"]?max_completion_tokens['"]?(?:[\s\S]*?Use ['"]?max_tokens['"]? instead)?/i,
     fix: (body) => {
       if (!('max_completion_tokens' in body)) return null;
       const { max_completion_tokens, ...rest } = body;
@@ -42,7 +42,7 @@ const KNOWN_FIXES: ParameterFix[] = [
   },
   // Reasoning models often reject temperature
   {
-    pattern: /Unsupported parameter: ['"]?temperature['"]?/i,
+    pattern: /(?:Unsupported|Unknown|Unrecognized)\s+(?:parameter|request argument(?:\s+supplied)?):?\s*['"]?temperature['"]?/i,
     fix: (body) => {
       if (!('temperature' in body)) return null;
       const { temperature, ...rest } = body;
@@ -51,7 +51,7 @@ const KNOWN_FIXES: ParameterFix[] = [
   },
   // Reasoning models often reject top_p
   {
-    pattern: /Unsupported parameter: ['"]?top_p['"]?/i,
+    pattern: /(?:Unsupported|Unknown|Unrecognized)\s+(?:parameter|request argument(?:\s+supplied)?):?\s*['"]?top_p['"]?/i,
     fix: (body) => {
       if (!('top_p' in body)) return null;
       const { top_p, ...rest } = body;
@@ -60,7 +60,7 @@ const KNOWN_FIXES: ParameterFix[] = [
   },
   // Some providers reject thinking/thinking_type
   {
-    pattern: /Unsupported parameter: ['"]?thinking['"]?/i,
+    pattern: /(?:Unsupported|Unknown|Unrecognized)\s+(?:parameter|request argument(?:\s+supplied)?):?\s*['"]?thinking['"]?/i,
     fix: (body) => {
       if (!('thinking' in body)) return null;
       const { thinking, ...rest } = body;
@@ -69,7 +69,7 @@ const KNOWN_FIXES: ParameterFix[] = [
   },
   // Frequency penalty / presence penalty
   {
-    pattern: /Unsupported parameter: ['"]?(?:frequency_penalty|presence_penalty)['"]?/i,
+    pattern: /(?:Unsupported|Unknown|Unrecognized)\s+(?:parameter|request argument(?:\s+supplied)?):?\s*['"]?(?:frequency_penalty|presence_penalty)['"]?/i,
     fix: (body) => {
       const { frequency_penalty, presence_penalty, ...rest } = body;
       return rest;
@@ -77,7 +77,7 @@ const KNOWN_FIXES: ParameterFix[] = [
   },
   // Some providers (e.g. Ollama) don't support reasoning_effort
   {
-    pattern: /Unsupported parameter: ['"]?reasoning_effort['"]?/i,
+    pattern: /(?:Unsupported|Unknown|Unrecognized)\s+(?:parameter|request argument(?:\s+supplied)?):?\s*['"]?reasoning_effort['"]?/i,
     fix: (body) => {
       if (!('reasoning_effort' in body)) return null;
       const { reasoning_effort, ...rest } = body;
