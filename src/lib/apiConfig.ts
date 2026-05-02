@@ -316,12 +316,12 @@ export async function testApiConnection(config: ApiConfig): Promise<{ success: b
       { maxTokens: 24000, enableThinking: true }
     );
 
-    const { finalBody } = await fetchWithAdaptiveRetry(url, {
+    await fetchWithAdaptiveRetry(url, {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.apiKey}`,
     }, body);
 
-    return { success: true, message: 'Connection successful!', requestBody: finalBody };
+    return { success: true, message: 'Connection successful!', requestBody: body };
   } catch (err) {
     return { success: false, message: `Connection failed: ${err instanceof Error ? err.message : String(err)}` };
   }

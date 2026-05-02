@@ -18,7 +18,7 @@ export interface LlmRequestBody {
 
 interface ParameterFix {
   pattern: RegExp;
-  fix: (body: Record<string, unknown>) => Record<string, unknown> | null;
+  fix: (body: Record<string, unknown>, match?: RegExpExecArray | null) => Record<string, unknown> | null;
 }
 
 /**
@@ -122,6 +122,21 @@ const KNOWN_FIXES: ParameterFix[] = [
       return rest;
     },
   },
+  // Some models cap max_tokens / max_completion_tokens lower than requested.
+  // Example: "max_tokens is too large: 24000. This model supports at most 16384 ..."
+  {
+    pattern: /(?:max_tokens|max_completion_tokens)\s+is\s+too\s+large.*?at\s+most\s+(\d+)/i,
+    fix: (body, match) => {
+      if (!match) return null;
+      const limit = parseInt(match[1], 10);
+      if (!limit || isNaN(limit)) return null;
+      const param = 'max_completion_tokens' in body ? 'max_completion_tokens' : 'max_tokens' in body ? 'max_tokens' : null;
+      if (!param) return null;
+      const current = body[param];
+      if (typeof current !== 'number' || current <= limit) return null;
+      return { ...body, [param]: limit };
+    },
+  },
 ];
 
 /**
@@ -133,8 +148,9 @@ function tryFixParameterError(
   body: Record<string, unknown>
 ): Record<string, unknown> | null {
   for (const { pattern, fix } of KNOWN_FIXES) {
-    if (pattern.test(errorMessage)) {
-      const fixed = fix(body);
+    const match = pattern.exec(errorMessage);
+    if (match) {
+      const fixed = fix(body, match);
       if (fixed) {
         console.log(`[llmAdapter] Applied fix for: ${errorMessage.slice(0, 120)}`);
         return fixed;
