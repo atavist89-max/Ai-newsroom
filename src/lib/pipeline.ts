@@ -65,10 +65,35 @@ export class PipelineRunner {
     this.state = createInitialState();
   }
 
+  private topicLoopUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+
   private updateState(partial: Partial<PipelineState>) {
     this.state = { ...this.state, ...partial };
-    this.callbacks.onStateChange(this.state);
-    this.updateNotification();
+    this.notifyStateChange();
+  }
+
+  private notifyStateChange() {
+    if (this.state.topicLoop?.isActive) {
+      if (!this.topicLoopUpdateTimer) {
+        this.topicLoopUpdateTimer = setTimeout(() => {
+          this.topicLoopUpdateTimer = null;
+          this.callbacks.onStateChange(this.state);
+          this.updateNotification();
+        }, 50);
+      }
+    } else {
+      this.callbacks.onStateChange(this.state);
+      this.updateNotification();
+    }
+  }
+
+  private flushTopicUpdates() {
+    if (this.topicLoopUpdateTimer) {
+      clearTimeout(this.topicLoopUpdateTimer);
+      this.topicLoopUpdateTimer = null;
+      this.callbacks.onStateChange(this.state);
+      this.updateNotification();
+    }
   }
 
   private updateNotification() {
@@ -157,6 +182,7 @@ export class PipelineRunner {
 
   stop() {
     this.abortController?.abort();
+    this.flushTopicUpdates();
     PipelineNotifications.stop();
     PipelineService.stop();
   }
@@ -392,6 +418,7 @@ export class PipelineRunner {
       completedAt: new Date().toISOString(),
     });
     this.updateState({ topicLoop: { ...this.state.topicLoop!, isActive: false } });
+    this.flushTopicUpdates();
   }
 
   private async runTopicWorker(

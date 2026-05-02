@@ -515,7 +515,7 @@ function TopicLoopDetail({ topicLoop }: { topicLoop: TopicLoopState }) {
 
       {/* Topic rows */}
       <div className="divide-y divide-slate-700/50">
-        {topicLoop.topics.map((topic) => (
+        {Array.isArray(topicLoop.topics) && topicLoop.topics.map((topic) => (
           <TopicDetailRow
             key={topic.segmentId}
             topic={topic}
@@ -607,7 +607,7 @@ function TopicDetailRow({
           {topic.metadata != null && (
             <div>
               <div className="text-[10px] font-semibold text-slate-400 uppercase mb-1">Audit</div>
-              <TopicAuditSection audit={topic.metadata as AuditResult} />
+              <TopicAuditSection audit={topic.metadata} />
             </div>
           )}
           {topic.prompt && (
@@ -632,39 +632,72 @@ function TopicDetailRow({
   );
 }
 
-function TopicAuditSection({ audit }: { audit: AuditResult }) {
-  const failCount = audit.stories.reduce(
-    (sum, s) => sum + s.rules.filter((r) => r.status === 'FAIL').length,
+function TopicAuditSection({ audit }: { audit: unknown }) {
+  const a = audit as Record<string, unknown> | undefined;
+  const stories = Array.isArray(a?.stories) ? (a.stories as Array<Record<string, unknown>>) : [];
+  const approvalStatus = a?.approval_status === 'APPROVED' || a?.approval_status === 'REJECTED'
+    ? a.approval_status
+    : 'UNKNOWN';
+  const hasFeedback = Boolean(a?.has_feedback);
+  const rewriterInstructions = typeof a?.rewriter_instructions === 'string'
+    ? a.rewriter_instructions
+    : '';
+
+  if (stories.length === 0) {
+    return (
+      <div className="text-[11px] text-slate-500 bg-slate-800/50 rounded p-2">
+        No audit data available.
+      </div>
+    );
+  }
+
+  const failCount = stories.reduce(
+    (sum, s) => {
+      const rules = Array.isArray(s?.rules) ? s.rules : [];
+      return sum + rules.filter((r: unknown) => (r as Record<string, unknown>)?.status === 'FAIL').length;
+    },
     0
   );
-  const totalRules = audit.stories.reduce((sum, s) => sum + s.rules.length, 0);
+  const totalRules = stories.reduce(
+    (sum, s) => sum + (Array.isArray(s?.rules) ? s.rules.length : 0),
+    0
+  );
 
   return (
     <div className="bg-slate-800/50 rounded border border-slate-700/50 px-3 py-2 space-y-2">
       <div className="flex items-center justify-between">
         <span className={cn(
           'text-[10px] px-1.5 py-0.5 rounded font-medium',
-          audit.approval_status === 'APPROVED'
+          approvalStatus === 'APPROVED'
             ? 'bg-green-900/30 text-green-400'
             : 'bg-red-900/30 text-red-400'
         )}>
-          {audit.approval_status}
+          {approvalStatus}
         </span>
         <span className="text-[10px] text-slate-500">
           {failCount}/{totalRules} failed
         </span>
       </div>
-      {audit.has_feedback && audit.rewriter_instructions && (
+      {hasFeedback && rewriterInstructions && (
         <pre className="text-[11px] text-amber-200/80 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-2 border border-slate-700/50 max-h-32 overflow-auto">
-          {audit.rewriter_instructions}
+          {rewriterInstructions}
         </pre>
       )}
       <div className="space-y-1">
-        {audit.stories.map((story, idx) =>
-          story.rules.map((rule, rIdx) => (
-            <RuleRow key={`${idx}-${rIdx}`} rule={rule} />
-          ))
-        )}
+        {stories.map((story, idx) => {
+          const rules = Array.isArray(story?.rules) ? story.rules : [];
+          return rules.map((rule: unknown, rIdx: number) => (
+            <RuleRow
+              key={`${idx}-${rIdx}`}
+              rule={{
+                rule_name: String((rule as Record<string, unknown>)?.rule_name ?? 'UNKNOWN'),
+                status: ((rule as Record<string, unknown>)?.status === 'FAIL' ? 'FAIL' : 'PASS') as 'PASS' | 'FAIL',
+                details: (rule as Record<string, unknown>)?.details ? String((rule as Record<string, unknown>).details) : undefined,
+                rejection_reason: (rule as Record<string, unknown>)?.rejection_reason ? String((rule as Record<string, unknown>).rejection_reason) : undefined,
+              }}
+            />
+          ));
+        })}
       </div>
     </div>
   );
