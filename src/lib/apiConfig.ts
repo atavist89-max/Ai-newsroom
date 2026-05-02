@@ -322,6 +322,7 @@ export async function testApiConnection(config: ApiConfig): Promise<{
   message: string;
   requestBody?: Record<string, unknown>;
   changes?: Array<{ key: string; from: unknown; to: unknown }>;
+  warning?: string;
 }> {
   try {
     if (!config.apiKey.trim()) {
@@ -345,11 +346,20 @@ export async function testApiConnection(config: ApiConfig): Promise<{
 
     const changes = getBodyChanges(body, finalBody);
 
+    const thinkingRemoved = changes.some(
+      (c) =>
+        (c.key === 'thinking' || c.key === 'reasoning_effort') &&
+        c.to === '<removed>'
+    );
+
     return {
       success: true,
       message: 'Connection successful!',
       requestBody: finalBody,
       changes: changes.length > 0 ? changes : undefined,
+      warning: thinkingRemoved
+        ? 'This model does not support thinking/reasoning. The app works best with thinking models (e.g. GPT-5.5, Claude 3.7 Sonnet, o3).'
+        : undefined,
     };
   } catch (err) {
     return { success: false, message: `Connection failed: ${err instanceof Error ? err.message : String(err)}` };

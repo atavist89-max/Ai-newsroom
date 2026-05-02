@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Settings, Key, Globe, Cpu, Save, TestTube, Eye, EyeOff, Loader2, CheckCircle, XCircle, Search, FolderOpen, Headphones, Zap } from 'lucide-react';
+import { Settings, Key, Globe, Cpu, Save, TestTube, Eye, EyeOff, Loader2, CheckCircle, XCircle, Search, FolderOpen, Headphones, Zap, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { loadApiConfig, saveApiConfig, testApiConnection, loadBraveApiKey, saveBraveApiKey, testBraveApiKey, loadTtsApiKey, saveTtsApiKey, testTtsApiKey, loadTestMode, saveTestMode, providerOptions } from '../lib/apiConfig';
 import type { ApiConfig, ApiProvider } from '../types';
@@ -24,6 +24,7 @@ export default function ConfigureApiScreen() {
     message: string;
     requestBody?: Record<string, unknown>;
     changes?: Array<{ key: string; from: unknown; to: unknown }>;
+    warning?: string;
   } | null>(null);
   const [isTestingBrave, setIsTestingBrave] = useState(false);
   const [braveTestResult, setBraveTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -391,6 +392,12 @@ export default function ConfigureApiScreen() {
                   {JSON.stringify(testResult.requestBody, null, 2)}
                 </pre>
               </details>
+            )}
+            {testResult.warning && (
+              <div className="flex items-start gap-2 px-4 py-3 rounded-lg border bg-yellow-900/20 border-yellow-600/40 text-yellow-300">
+                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <span className="text-sm">{testResult.warning}</span>
+              </div>
             )}
             {testResult.changes && testResult.changes.length > 0 && (
               <details className="bg-amber-900/20 border border-amber-700/40 rounded-lg">

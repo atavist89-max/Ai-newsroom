@@ -236,9 +236,23 @@ export function buildLlmBody(
   }
 
   // Thinking / reasoning extensions.
-  // If the model doesn't support it, the adaptive retry will remove it.
+  // Send the correct parameter based on the model family.
   if (options.enableThinking) {
-    body.thinking = { type: 'enabled' };
+    const lowerModel = model.toLowerCase();
+    if (lowerModel.includes('claude')) {
+      // Anthropic uses `thinking`
+      body.thinking = { type: 'enabled' };
+    } else if (
+      lowerModel.includes('gpt-5') ||
+      lowerModel.startsWith('o') ||
+      lowerModel.includes('reasoning')
+    ) {
+      // OpenAI reasoning models use `reasoning_effort`
+      body.reasoning_effort = 'medium';
+    } else {
+      // Unknown model family — default to `thinking` and let adaptive retry handle it.
+      body.thinking = { type: 'enabled' };
+    }
   }
 
   return body;
