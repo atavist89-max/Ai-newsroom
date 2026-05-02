@@ -28,13 +28,15 @@ const INDEX_TO_SEGMENT: SegmentId[] = [
 
 function getTopicLabel(index: number, sessionConfig: SessionConfig): string {
   const topics = sessionConfig.content.topics;
+  const country = sessionConfig.geography.country.name;
+  const continent = sessionConfig.geography.continent.name;
   switch (index) {
-    case 0: return `${topics[0]}, Local`;
-    case 1: return `${topics[1]}, Local`;
-    case 2: return `${topics[2]}, Local`;
-    case 3: return `${topics[0]}, Continent`;
-    case 4: return `${topics[1]}, Continent`;
-    case 5: return `${topics[2]}, Continent`;
+    case 0: return `${topics[0]}, ${country}`;
+    case 1: return `${topics[1]}, ${country}`;
+    case 2: return `${topics[2]}, ${country}`;
+    case 3: return `${topics[0]}, ${continent}`;
+    case 4: return `${topics[1]}, ${continent}`;
+    case 5: return `${topics[2]}, ${continent}`;
     case 6: return 'Editorial';
     default: return `Topic ${index + 1}`;
   }
