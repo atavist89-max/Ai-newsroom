@@ -104,7 +104,7 @@ export async function streamLLM(
     stream: true,
     // Reasoning models can burn 8000+ tokens on internal monologue before
     // emitting content. Default limits (4096) are nowhere near enough.
-    max_tokens: isReasoningModel ? 24000 : 8000,
+    max_completion_tokens: isReasoningModel ? 24000 : 8000,
   };
   if (isKimi) {
     requestBody.thinking = { type: 'enabled' };
@@ -338,7 +338,7 @@ export async function testApiConnection(config: ApiConfig): Promise<{ success: b
       body: JSON.stringify({
         model: config.model || 'gpt-4o',
         messages: [{ role: 'user', content: 'Say "OK" and nothing else.' }],
-        max_tokens: 5,
+        max_completion_tokens: 5,
       }),
     });
 
