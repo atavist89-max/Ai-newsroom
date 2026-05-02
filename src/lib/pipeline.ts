@@ -26,6 +26,20 @@ const INDEX_TO_SEGMENT: SegmentId[] = [
   'topic4', 'topic5', 'topic6', 'topic7',
 ];
 
+function getTopicLabel(index: number, sessionConfig: SessionConfig): string {
+  const topics = sessionConfig.content.topics;
+  switch (index) {
+    case 0: return `${topics[0]}, Local`;
+    case 1: return `${topics[1]}, Local`;
+    case 2: return `${topics[2]}, Local`;
+    case 3: return `${topics[0]}, Continent`;
+    case 4: return `${topics[1]}, Continent`;
+    case 5: return `${topics[2]}, Continent`;
+    case 6: return 'Editorial';
+    default: return `Topic ${index + 1}`;
+  }
+}
+
 function createInitialStages(): StageRecord[] {
   return STAGE_DEFINITIONS.map((def) => ({
     ...def,
@@ -373,6 +387,7 @@ export class PipelineRunner {
     const topics: TopicStatus[] = Array.from({ length: totalTopics }, (_, i) => ({
       index: i,
       segmentId: INDEX_TO_SEGMENT[i],
+      label: getTopicLabel(i, sessionConfig),
       state: 'pending' as TopicState,
       attempt: 0,
       reasoning: '',

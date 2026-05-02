@@ -230,7 +230,7 @@ function TopicDot({ topic }: { topic: TopicStatus }) {
 
   return (
     <span
-      title={`${topic.segmentId}: ${label}`}
+      title={`${topic.label}: ${label}`}
       className={cn('w-2.5 h-2.5 rounded-full', colorClass)}
     />
   );

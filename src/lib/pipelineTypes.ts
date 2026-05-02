@@ -62,6 +62,7 @@ export type TopicState =
 export interface TopicStatus {
   index: number;
   segmentId: SegmentId;
+  label: string;
   state: TopicState;
   attempt: number;
   reasoning: string;
@@ -154,9 +155,7 @@ export const STAGE_DEFINITIONS: Omit<StageRecord, 'status' | 'iteration' | 'reas
   { id: 'agent1', name: 'Researcher', shortName: 'Research', icon: 'Search' },
   { id: 'fullScriptEditor', name: 'Full Script Editor', shortName: 'Full Edit', icon: 'ClipboardCheck' },
   { id: 'fullScriptWriter', name: 'Full Script Writer', shortName: 'Full Write', icon: 'PenTool' },
-  { id: 'segmentWriter', name: 'Segment Writer', shortName: 'Seg Write', icon: 'FileEdit' },
-  { id: 'segmentEditor', name: 'Segment Editor', shortName: 'Seg Edit', icon: 'FileCheck' },
+  { id: 'topicLoop', name: 'Topic Review', shortName: 'Review', icon: 'LayoutGrid' },
   { id: 'assembler', name: 'Assembler', shortName: 'Assemble', icon: 'Layers' },
   { id: 'agent6', name: 'Audio Producer', shortName: 'Audio', icon: 'Headphones' },
-  { id: 'topicLoop', name: 'Topic Loop', shortName: 'Topics', icon: 'LayoutGrid' },
 ];

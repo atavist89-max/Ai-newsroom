@@ -578,7 +578,7 @@ function TopicDetailRow({
         className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-800/50 transition-colors"
       >
         <span className={cn('w-2.5 h-2.5 rounded-full flex-shrink-0', dotColor)} />
-        <span className="text-xs font-medium text-slate-200 w-16">{topic.segmentId}</span>
+        <span className="text-xs font-medium text-slate-200 w-24 truncate">{topic.label}</span>
         <span className={cn('text-xs', stateColor)}>{stateLabel}</span>
         {topic.attempt > 0 && (
           <span className="text-[10px] text-slate-500 ml-auto">Attempt {topic.attempt}</span>
