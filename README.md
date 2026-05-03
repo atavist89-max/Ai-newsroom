@@ -2,20 +2,20 @@
 
 **Your personal AI news producer. In your pocket.**
 
-Pick any country on Earth. Choose three news topics, a voice, a music style, and an editorial angle. Then watch a team of AI agents research local sources, write, edit, fact-check, and produce a professional news podcast — all automatically, right on your phone.
+Choose from 37 countries supported by Brave Search. Pick three news topics, a voice, a music style, and an editorial angle. Then watch a team of AI agents research local sources, write, edit, fact-check, and produce a professional news podcast — all automatically, right on your phone.
 
-No newsroom. No subscription. No backend. Just you, your API keys, and a fully autonomous pipeline that turns raw global events into a polished audio broadcast tailored exactly to your perspective.
+A full newsroom in your pocket. No waiting for established media to report. Just you, your API keys, and a fully autonomous pipeline that turns raw global events into a polished, curated audio broadcast tailored exactly to your perspective.
 
 ---
 
 ## What It Does
 
-Imagine waking up in Berlin and wanting to know what's happening in Nairobi — but not from a Western lens, and not from sanitized headlines. You want the local perspective, translated and contextualized, delivered by a voice you chose, with the editorial angle you prefer.
+Tired of waiting for mainstream media to cover the stories you care about? Want news curated for your interests, told in your voice, from the perspective you choose?
 
-**AI Newsroom makes that happen in under 5 minutes.**
+**AI Newsroom puts a full newsroom in your pocket.**
 
 You configure:
-- **Country** — Any of 195 countries with local language and native news sources
+- **Country** — 37 countries supported by Brave Search, with local language and native news sources
 - **Timeframe** — Daily briefing, weekly review, or monthly roundup
 - **Topics** — Exactly 3 from politics, economy, sport, technology, crime, and more
 - **Voice** — Four distinct AI voices with personalities and preview audio
@@ -509,7 +509,7 @@ Each agent prompt imports these requirements and embeds them verbatim. This ensu
 │   │   └── ScreenTabs.tsx           # Tab navigation (Newsroom / Configure)
 │   ├── data/                 # Static data & configuration
 │   │   ├── bias.ts                  # Bias options and editorial instructions
-│   │   ├── countries.ts             # 195-country dataset with news sources & languages
+│   │   ├── countries.ts             # Full country dataset (195); 37 are Brave Search supported
 │   │   ├── countryBounds.ts         # Map bounding boxes per continent
 │   │   ├── music.ts                 # Music styles, suites, file mappings
 │   │   ├── timeframes.ts            # Daily / weekly / monthly configs
