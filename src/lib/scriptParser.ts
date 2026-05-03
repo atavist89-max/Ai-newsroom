@@ -67,16 +67,18 @@ export function buildFullScriptFromSegments(
 ): string {
   const segments: Segment[] = [
     { id: 'intro', content: segmentContents.intro },
-    { id: 'topic1', topic: topics[0], content: segmentContents.topic1 },
-    { id: 'topic2', topic: topics[1], content: segmentContents.topic2 },
-    { id: 'topic3', topic: topics[2], content: segmentContents.topic3 },
-    { id: 'topic4', topic: topics[0], content: segmentContents.topic4 },
-    { id: 'topic5', topic: topics[1], content: segmentContents.topic5 },
-    { id: 'topic6', topic: topics[2], content: segmentContents.topic6 },
+    { id: 'article1', topic: topics[0], content: segmentContents.article1 },
+    { id: 'article2', topic: topics[1], content: segmentContents.article2 },
+    { id: 'article3', topic: topics[2], content: segmentContents.article3 },
+    { id: 'article4', topic: topics[0], content: segmentContents.article4 },
+    { id: 'article5', topic: topics[1], content: segmentContents.article5 },
+    { id: 'article6', topic: topics[2], content: segmentContents.article6 },
+    { id: 'article7', topic: topics[0], content: segmentContents.article7 },
+    { id: 'article8', topic: topics[1], content: segmentContents.article8 },
   ];
 
   if (includeEditorial) {
-    segments.push({ id: 'topic7', topic: 'Editorial', content: segmentContents.topic7 });
+    segments.push({ id: 'editorial', topic: 'Editorial', content: segmentContents.editorial });
   }
 
   segments.push({ id: 'outro', content: segmentContents.outro });

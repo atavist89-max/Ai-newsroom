@@ -194,7 +194,7 @@ export async function producePodcast(
   let segmentCount = 0;
   let totalDurationSeconds = 0;
 
-  const hasTopic7 = segments.topic7 && segments.topic7.trim().length > 0;
+  const hasEditorial = segments.editorial && segments.editorial.trim().length > 0;
 
   // One shared AudioContext for all MP3 decoding
   const audioCtx = new AudioContext({ sampleRate: SAMPLE_RATE });
@@ -276,43 +276,31 @@ export async function producePodcast(
     narrationBuf = null;
   };
 
-  // 1. Intro
-  onProgress('Processing Intro...');
-  await processSegment('intro', musicSuite?.intro, stripXmlAndCues(segments.intro), 'Intro');
+  // Position-based sting logic
+  const SEGMENT_ORDER: SegmentId[] = [
+    'intro',
+    'article1', 'article2', 'article3', 'article4', 'article5',
+    'article6', 'article7', 'article8',
+    'editorial',
+    'outro',
+  ];
 
-  // 2. Topic1
-  onProgress('Processing Topic 1...');
-  await processSegment('blockSting', musicSuite?.blockSting, stripXmlAndCues(segments.topic1), 'Topic 1');
+  for (let i = 0; i < SEGMENT_ORDER.length; i++) {
+    const segId = SEGMENT_ORDER[i];
+    if (segId === 'editorial' && !hasEditorial) continue;
 
-  // 3. Topic2
-  onProgress('Processing Topic 2...');
-  await processSegment('storySting', musicSuite?.storySting, stripXmlAndCues(segments.topic2), 'Topic 2');
+    const narrationText = stripXmlAndCues(segments[segId] || '');
+    if (!narrationText.trim().length && segId !== 'intro' && segId !== 'outro') continue;
 
-  // 4. Topic3
-  onProgress('Processing Topic 3...');
-  await processSegment('storySting', musicSuite?.storySting, stripXmlAndCues(segments.topic3), 'Topic 3');
+    let musicCategory: 'intro' | 'outro' | 'storySting' | 'blockSting' = 'storySting';
+    if (segId === 'intro') musicCategory = 'intro';
+    else if (segId === 'outro') musicCategory = 'outro';
+    else if (segId === 'article6') musicCategory = 'blockSting';
 
-  // 5. Topic4
-  onProgress('Processing Topic 4...');
-  await processSegment('blockSting', musicSuite?.blockSting, stripXmlAndCues(segments.topic4), 'Topic 4');
-
-  // 6. Topic5
-  onProgress('Processing Topic 5...');
-  await processSegment('storySting', musicSuite?.storySting, stripXmlAndCues(segments.topic5), 'Topic 5');
-
-  // 7. Topic6
-  onProgress('Processing Topic 6...');
-  await processSegment('storySting', musicSuite?.storySting, stripXmlAndCues(segments.topic6), 'Topic 6');
-
-  // 8. Topic7 (editorial)
-  if (hasTopic7) {
-    onProgress('Processing Topic 7 (Editorial)...');
-    await processSegment('blockSting', musicSuite?.blockSting, stripXmlAndCues(segments.topic7), 'Topic 7 (Editorial)');
+    const label = segId === 'editorial' ? 'Editorial' : segId.charAt(0).toUpperCase() + segId.slice(1);
+    onProgress(`Processing ${label}...`);
+    await processSegment(musicCategory, musicSuite?.[musicCategory], narrationText, label);
   }
-
-  // 9. Outro
-  onProgress('Processing Outro...');
-  await processSegment('outro', musicSuite?.outro, stripXmlAndCues(segments.outro), 'Outro');
 
   // Finalize MP3 encoder
   onProgress('Finalizing MP3...');

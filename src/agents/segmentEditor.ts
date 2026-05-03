@@ -6,8 +6,8 @@ import { readSegment, type SegmentId } from '../lib/fileManager';
 import { validateMechanical, buildMechanicalFeedback } from '../lib/mechanicalValidator';
 
 const INDEX_TO_SEGMENT: SegmentId[] = [
-  'topic1', 'topic2', 'topic3',
-  'topic4', 'topic5', 'topic6', 'topic7',
+  'article1', 'article2', 'article3', 'article4', 'article5',
+  'article6', 'article7', 'article8', 'editorial',
 ];
 
 export function createSegmentEditor(): AgentFn {
@@ -20,7 +20,7 @@ export function createSegmentEditor(): AgentFn {
 
     const targetSegmentId = INDEX_TO_SEGMENT[segmentLoopIndex];
     const targetStoryId = segmentLoopIndex + 1;
-    const topicName = targetSegmentId === 'topic7'
+    const topicName = targetSegmentId === 'editorial'
       ? 'Editorial'
       : sessionConfig.content.topics[segmentLoopIndex % 3] ?? 'Unknown';
 

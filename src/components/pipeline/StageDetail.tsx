@@ -15,6 +15,17 @@ interface Agent1Metadata {
     localArticles: Array<{ title: string; source: string; url: string }>;
     continentArticles: Array<{ title: string; source: string; url: string }>;
   }>;
+  selectedArticles?: Array<{
+    key: string;
+    title: string;
+    source: string;
+    scope: string;
+    topic: string;
+    tier: number;
+    wordCount: number;
+    backupCount: number;
+  }>;
+  articleCount?: number;
   sourcesUsed?: string[];
   fallbackUsed?: boolean;
   streamDiagnostics?: string[];
@@ -59,15 +70,15 @@ export default function StageDetail({ stage, topicLoop }: StageDetailProps) {
     error: 'bg-red-900/50 text-red-300',
   };
 
-  const isAgent1 = stage.id === 'agent1';
+  const isResearchOrWriter = stage.id === 'articleResearch' || stage.id === 'scriptWriter';
   const isGate = stage.id.startsWith('gate') || stage.id === 'fullScriptEditor' || stage.id === 'segmentEditor';
   const metadata = stage.metadata as Agent1Metadata | undefined;
   const auditResult = stage.metadata as AuditResult | undefined;
 
   const tabs: { id: TabId; label: string; icon: React.ElementType; show: boolean }[] = [
-    { id: 'articles', label: 'Articles', icon: FileText, show: isAgent1 },
+    { id: 'articles', label: 'Articles', icon: FileText, show: stage.id === 'articleResearch' },
     { id: 'stream', label: 'Stream', icon: Zap, show: true },
-    { id: 'output', label: 'Agent Output', icon: FileCheck, show: isAgent1 || stage.id === 'assembler' },
+    { id: 'output', label: 'Agent Output', icon: FileCheck, show: isResearchOrWriter || stage.id === 'assembler' },
     { id: 'audit', label: 'Audit', icon: ClipboardCheck, show: isGate },
     { id: 'prompt', label: 'Prompt', icon: ScrollText, show: !!stage.prompt },
   ];
@@ -139,48 +150,82 @@ export default function StageDetail({ stage, topicLoop }: StageDetailProps) {
 }
 
 function ArticlesTab({ metadata }: { metadata: Agent1Metadata | undefined }) {
-  if (!metadata?.topicGroups || metadata.topicGroups.length === 0) {
+  // New format: selectedArticles from articleResearcher
+  if (metadata?.selectedArticles && metadata.selectedArticles.length > 0) {
+    const locals = metadata.selectedArticles.filter((a) => a.scope === 'local');
+    const continents = metadata.selectedArticles.filter((a) => a.scope === 'continent');
     return (
-      <div className="p-4 text-sm text-slate-500 text-center">
-        No articles found yet.
+      <div className="p-4 space-y-4">
+        <div className="text-xs text-slate-300">
+          <span className="font-medium">{metadata.articleCount ?? metadata.selectedArticles.length}</span> articles selected
+          <span className="text-slate-500 ml-2">({locals.length} local / {continents.length} continent)</span>
+        </div>
+        {metadata.selectedArticles.map((article, idx) => (
+          <div key={idx} className="flex items-start gap-2 px-2 py-1.5 rounded bg-slate-800/50">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-slate-200 truncate" title={article.title}>
+                {article.title}
+              </div>
+              <div className="text-[10px] text-slate-500">
+                {article.source} · {article.topic} · {article.wordCount} words · {article.backupCount} backup{article.backupCount !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <span className={
+              article.scope === 'local'
+                ? 'text-[10px] px-1.5 py-0.5 rounded bg-blue-900/30 text-blue-300'
+                : 'text-[10px] px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-300'
+            }>
+              {article.scope}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Legacy format: topicGroups from old agent1
+  if (metadata?.topicGroups && metadata.topicGroups.length > 0) {
+    return (
+      <div className="p-4 space-y-4">
+        {metadata.topicGroups.map((group, idx) => (
+          <div key={idx} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">
+                Topic {idx + 1}: {group.topic}
+              </span>
+              <span className="text-[10px] text-slate-500">
+                {group.localCount} local / {group.continentCount} continent
+              </span>
+            </div>
+
+            {group.localArticles.length > 0 && (
+              <div className="space-y-1">
+                <span className="text-[10px] font-medium text-slate-400 uppercase">Local Articles</span>
+                {group.localArticles.map((article, i) => (
+                  <ArticleRow key={`l-${i}`} article={article} />
+                ))}
+              </div>
+            )}
+
+            {group.continentArticles.length > 0 && (
+              <div className="space-y-1 pt-1">
+                <span className="text-[10px] font-medium text-slate-400 uppercase">Continent Articles</span>
+                {group.continentArticles.map((article, i) => (
+                  <ArticleRow key={`c-${i}`} article={article} />
+                ))}
+              </div>
+            )}
+
+            {idx < (metadata?.topicGroups?.length ?? 0) - 1 && <hr className="border-slate-700/50" />}
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {metadata.topicGroups.map((group, idx) => (
-        <div key={idx} className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-blue-300 uppercase tracking-wide">
-              Topic {idx + 1}: {group.topic}
-            </span>
-            <span className="text-[10px] text-slate-500">
-              {group.localCount} local / {group.continentCount} continent
-            </span>
-          </div>
-
-          {group.localArticles.length > 0 && (
-            <div className="space-y-1">
-              <span className="text-[10px] font-medium text-slate-400 uppercase">Local Articles</span>
-              {group.localArticles.map((article, i) => (
-                <ArticleRow key={`l-${i}`} article={article} />
-              ))}
-            </div>
-          )}
-
-          {group.continentArticles.length > 0 && (
-            <div className="space-y-1 pt-1">
-              <span className="text-[10px] font-medium text-slate-400 uppercase">Continent Articles</span>
-              {group.continentArticles.map((article, i) => (
-                <ArticleRow key={`c-${i}`} article={article} />
-              ))}
-            </div>
-          )}
-
-          {idx < (metadata?.topicGroups?.length ?? 0) - 1 && <hr className="border-slate-700/50" />}
-        </div>
-      ))}
+    <div className="p-4 text-sm text-slate-500 text-center">
+      No articles found yet.
     </div>
   );
 }
@@ -294,6 +339,10 @@ function OutputTab({ stage, metadata }: { stage: StageRecord; metadata: Agent1Me
             </pre>
           )}
         </div>
+      ) : stage.id === 'scriptWriter' && stage.output ? (
+        <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[350px] overflow-auto leading-relaxed">
+          {stage.output}
+        </pre>
       ) : metadata?.firstDraft ? (
         <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans bg-slate-950/30 rounded p-3 border border-slate-700/50 max-h-[350px] overflow-auto leading-relaxed">
           {metadata.firstDraft}
@@ -356,12 +405,14 @@ function AuditTab({ stage, audit }: { stage: StageRecord; audit: AuditResult | u
   const hasStories = audit.stories.length > 0;
 
   const themeLabels = [
-    'Local Theme 1',
-    'Local Theme 2',
-    'Local Theme 3',
-    'Continent Theme 1',
-    'Continent Theme 2',
-    'Continent Theme 3',
+    'Local Article 1',
+    'Local Article 2',
+    'Local Article 3',
+    'Local Article 4',
+    'Local Article 5',
+    'Continent Article 6',
+    'Continent Article 7',
+    'Continent Article 8',
     'Editorial Segment',
   ];
 

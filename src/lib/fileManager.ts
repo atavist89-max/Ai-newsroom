@@ -2,23 +2,54 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 const BASE_DIR = 'newsroom';
 
-export type SegmentId = 'intro' | 'topic1' | 'topic2' | 'topic3' | 'topic4' | 'topic5' | 'topic6' | 'topic7' | 'outro';
+export type SegmentId =
+  | 'intro'
+  | 'article1' | 'article2' | 'article3' | 'article4' | 'article5'
+  | 'article6' | 'article7' | 'article8'
+  | 'editorial'
+  | 'outro';
 
 export const ALL_SEGMENT_IDS: SegmentId[] = [
-  'intro', 'topic1', 'topic2', 'topic3', 'topic4', 'topic5', 'topic6', 'topic7', 'outro',
+  'intro',
+  'article1', 'article2', 'article3', 'article4', 'article5',
+  'article6', 'article7', 'article8',
+  'editorial',
+  'outro',
 ];
 
 export const SEGMENT_FILE_NAMES: Record<SegmentId, string> = {
   intro: 'intro.txt',
-  topic1: 'Topic1.txt',
-  topic2: 'Topic2.txt',
-  topic3: 'Topic3.txt',
-  topic4: 'Topic4.txt',
-  topic5: 'Topic5.txt',
-  topic6: 'Topic6.txt',
-  topic7: 'Topic7.txt',
+  article1: 'Article1.txt',
+  article2: 'Article2.txt',
+  article3: 'Article3.txt',
+  article4: 'Article4.txt',
+  article5: 'Article5.txt',
+  article6: 'Article6.txt',
+  article7: 'Article7.txt',
+  article8: 'Article8.txt',
+  editorial: 'Editorial.txt',
   outro: 'outro.txt',
 };
+
+// Selected articles persistence
+export interface ArticleSource {
+  url: string;
+  title: string;
+  source: string;
+  description: string;
+  text: string;
+  wordCount: number;
+  tier: 1 | 2 | 3;
+}
+
+export interface SelectedArticle {
+  main: ArticleSource;
+  backups: ArticleSource[];
+  scope: 'local' | 'continent';
+  topic: string;
+}
+
+export type SelectedArticlesMap = Record<string, SelectedArticle>;
 
 /**
  * Get the directory to use for file storage.
@@ -189,6 +220,43 @@ export async function getSegmentInfo(id: SegmentId): Promise<{ exists: boolean; 
     return { exists: true, size: info.size ?? 0 };
   } catch {
     return { exists: false, size: 0 };
+  }
+}
+
+// Selected articles helpers
+
+const SELECTED_ARTICLES_FILE = 'selected_articles.json';
+
+export async function writeSelectedArticles(articles: SelectedArticlesMap): Promise<void> {
+  const dir = await getTargetDirectory();
+  const path = `${BASE_DIR}/${SELECTED_ARTICLES_FILE}`;
+  try {
+    await Filesystem.writeFile({
+      path,
+      data: JSON.stringify(articles, null, 2),
+      directory: dir,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    });
+  } catch (err) {
+    console.error(`[fileManager] Failed to write ${path}:`, err);
+    throw err;
+  }
+}
+
+export async function readSelectedArticles(): Promise<SelectedArticlesMap> {
+  const dir = await getTargetDirectory();
+  const path = `${BASE_DIR}/${SELECTED_ARTICLES_FILE}`;
+  try {
+    const result = await Filesystem.readFile({
+      path,
+      directory: dir,
+      encoding: Encoding.UTF8,
+    });
+    return JSON.parse(result.data as string) as SelectedArticlesMap;
+  } catch (err) {
+    console.error(`[fileManager] Failed to read ${path}:`, err);
+    return {};
   }
 }
 

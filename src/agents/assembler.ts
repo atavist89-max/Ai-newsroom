@@ -17,16 +17,18 @@ export function createAssembler(): AgentFn {
     // Build segment array
     const segments: Segment[] = [
       { id: 'intro', content: allSegments.intro },
-      { id: 'topic1', topic: sessionConfig.content.topics[0], content: allSegments.topic1 },
-      { id: 'topic2', topic: sessionConfig.content.topics[1], content: allSegments.topic2 },
-      { id: 'topic3', topic: sessionConfig.content.topics[2], content: allSegments.topic3 },
-      { id: 'topic4', topic: sessionConfig.content.topics[0], content: allSegments.topic4 },
-      { id: 'topic5', topic: sessionConfig.content.topics[1], content: allSegments.topic5 },
-      { id: 'topic6', topic: sessionConfig.content.topics[2], content: allSegments.topic6 },
+      { id: 'article1', topic: sessionConfig.content.topics[0], content: allSegments.article1 },
+      { id: 'article2', topic: sessionConfig.content.topics[1], content: allSegments.article2 },
+      { id: 'article3', topic: sessionConfig.content.topics[2], content: allSegments.article3 },
+      { id: 'article4', topic: sessionConfig.content.topics[0], content: allSegments.article4 },
+      { id: 'article5', topic: sessionConfig.content.topics[1], content: allSegments.article5 },
+      { id: 'article6', topic: sessionConfig.content.topics[2], content: allSegments.article6 },
+      { id: 'article7', topic: sessionConfig.content.topics[0], content: allSegments.article7 },
+      { id: 'article8', topic: sessionConfig.content.topics[1], content: allSegments.article8 },
     ];
 
     if (sessionConfig.editorial.includeSegment) {
-      segments.push({ id: 'topic7', topic: 'Editorial', content: allSegments.topic7 });
+      segments.push({ id: 'editorial', topic: 'Editorial', content: allSegments.editorial });
     }
 
     segments.push({ id: 'outro', content: allSegments.outro });

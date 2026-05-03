@@ -6,12 +6,12 @@ import { parseFullScript, assembleFullScript, type Segment } from '../lib/script
 import { validateMechanical, buildMechanicalFeedback } from '../lib/mechanicalValidator';
 
 const INDEX_TO_SEGMENT: SegmentId[] = [
-  'topic1', 'topic2', 'topic3',
-  'topic4', 'topic5', 'topic6', 'topic7',
+  'article1', 'article2', 'article3', 'article4', 'article5',
+  'article6', 'article7', 'article8', 'editorial',
 ];
 
 const ALL_SEGMENT_IDS: SegmentId[] = [
-  'intro', 'topic1', 'topic2', 'topic3', 'topic4', 'topic5', 'topic6', 'topic7', 'outro',
+  'intro', 'article1', 'article2', 'article3', 'article4', 'article5', 'article6', 'article7', 'article8', 'editorial', 'outro',
 ];
 
 const MAX_MECHANICAL_RETRIES = 3;
@@ -145,15 +145,17 @@ export function createSegmentWriter(): AgentFn {
     const updatedSegments = await readAllSegments();
     const segments: Segment[] = [
       { id: 'intro', content: updatedSegments.intro },
-      { id: 'topic1', topic: sessionConfig.content.topics[0], content: updatedSegments.topic1 },
-      { id: 'topic2', topic: sessionConfig.content.topics[1], content: updatedSegments.topic2 },
-      { id: 'topic3', topic: sessionConfig.content.topics[2], content: updatedSegments.topic3 },
-      { id: 'topic4', topic: sessionConfig.content.topics[0], content: updatedSegments.topic4 },
-      { id: 'topic5', topic: sessionConfig.content.topics[1], content: updatedSegments.topic5 },
-      { id: 'topic6', topic: sessionConfig.content.topics[2], content: updatedSegments.topic6 },
+      { id: 'article1', topic: sessionConfig.content.topics[0], content: updatedSegments.article1 },
+      { id: 'article2', topic: sessionConfig.content.topics[1], content: updatedSegments.article2 },
+      { id: 'article3', topic: sessionConfig.content.topics[2], content: updatedSegments.article3 },
+      { id: 'article4', topic: sessionConfig.content.topics[0], content: updatedSegments.article4 },
+      { id: 'article5', topic: sessionConfig.content.topics[1], content: updatedSegments.article5 },
+      { id: 'article6', topic: sessionConfig.content.topics[2], content: updatedSegments.article6 },
+      { id: 'article7', topic: sessionConfig.content.topics[0], content: updatedSegments.article7 },
+      { id: 'article8', topic: sessionConfig.content.topics[1], content: updatedSegments.article8 },
     ];
     if (sessionConfig.editorial.includeSegment) {
-      segments.push({ id: 'topic7', topic: 'Editorial', content: updatedSegments.topic7 });
+      segments.push({ id: 'editorial', topic: 'Editorial', content: updatedSegments.editorial });
     }
     segments.push({ id: 'outro', content: updatedSegments.outro });
 

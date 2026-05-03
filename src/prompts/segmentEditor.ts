@@ -12,7 +12,7 @@ export function buildSegmentEditorPrompt(
   mechanicalAudit: MechanicalAudit,
   iteration: number = 1
 ): string {
-  const isEditorial = targetSegmentId === 'topic7';
+  const isEditorial = targetSegmentId === 'editorial';
   const geographyLabel = targetStoryId <= 3
     ? `Local themes = only ${config.geography.country.name} stories`
     : `Continent themes = only ${config.geography.continent.name} countries with continent angle`;

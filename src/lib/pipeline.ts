@@ -22,8 +22,8 @@ const MAX_RETRIES = 3;
 const MAX_TOPIC_ATTEMPTS = 5;
 
 const INDEX_TO_SEGMENT: SegmentId[] = [
-  'topic1', 'topic2', 'topic3',
-  'topic4', 'topic5', 'topic6', 'topic7',
+  'article1', 'article2', 'article3', 'article4', 'article5',
+  'article6', 'article7', 'article8', 'editorial',
 ];
 
 function getTopicLabel(index: number, sessionConfig: SessionConfig): string {
@@ -34,10 +34,12 @@ function getTopicLabel(index: number, sessionConfig: SessionConfig): string {
     case 0: return `${topics[0]}, ${country}`;
     case 1: return `${topics[1]}, ${country}`;
     case 2: return `${topics[2]}, ${country}`;
-    case 3: return `${topics[0]}, ${continent}`;
-    case 4: return `${topics[1]}, ${continent}`;
-    case 5: return `${topics[2]}, ${continent}`;
-    case 6: return 'Editorial';
+    case 3: return 'Wildcard Local 1';
+    case 4: return 'Wildcard Local 2';
+    case 5: return `${topics[0]}, ${continent}`;
+    case 6: return `${topics[1]}, ${continent}`;
+    case 7: return `${topics[2]}, ${continent}`;
+    case 8: return 'Editorial';
     default: return `Topic ${index + 1}`;
   }
 }
@@ -143,7 +145,7 @@ export class PipelineRunner {
 
     try {
       this.sessionConfig = sessionConfig;
-      let stage: StageId = 'agent1';
+      let stage: StageId = 'articleResearch';
       let draft = '';
       let feedback: unknown = undefined;
 
@@ -324,8 +326,8 @@ export class PipelineRunner {
     if (!metadata || typeof metadata !== 'object') {
       // Fallback: linear flow
       const flow: StageId[] = [
-        'agent1', 'fullScriptEditor', 'fullScriptWriter',
-        'assembler', 'agent6',
+        'articleResearch', 'scriptWriter', 'fullScriptEditor', 'fullScriptWriter',
+        'topicLoop', 'assembler', 'fullScriptEditor', 'agent6',
       ];
       const idx = flow.indexOf(current);
       if (idx === -1 || idx === flow.length - 1) return 'COMPLETE';
@@ -335,7 +337,12 @@ export class PipelineRunner {
     const m = metadata as Record<string, unknown>;
 
     switch (current) {
-      case 'agent1': {
+      case 'articleResearch': {
+        // Always go to scriptWriter after research
+        return 'scriptWriter';
+      }
+
+      case 'scriptWriter': {
         if (this.testMode) {
           return 'agent6';
         }
@@ -385,7 +392,7 @@ export class PipelineRunner {
     sessionConfig: SessionConfig,
     currentDraft: string
   ): Promise<void> {
-    const totalTopics = sessionConfig.editorial.includeSegment ? 7 : 6;
+    const totalTopics = sessionConfig.editorial.includeSegment ? 9 : 8;
     const topics: TopicStatus[] = Array.from({ length: totalTopics }, (_, i) => ({
       index: i,
       segmentId: INDEX_TO_SEGMENT[i],

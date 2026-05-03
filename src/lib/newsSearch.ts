@@ -67,6 +67,7 @@ async function fetchBraveSearch(params: {
   freshness?: string;
   searchLang?: string;
   country?: string;
+  offset?: number;
 }): Promise<NewsArticle[]> {
   const apiKey = await loadBraveApiKey();
   if (!apiKey.trim()) {
@@ -82,6 +83,9 @@ async function fetchBraveSearch(params: {
   if (params.searchLang) queryParams.search_lang = params.searchLang;
   if (params.country && BRAVE_SUPPORTED_COUNTRIES.has(params.country.toUpperCase())) {
     queryParams.country = params.country.toLowerCase();
+  }
+  if (params.offset !== undefined && params.offset > 0) {
+    queryParams.offset = String(params.offset);
   }
 
   const response = await CapacitorHttp.request({
@@ -111,6 +115,7 @@ export interface SearchTopicParams {
   topicQuery: string;
   freshness: string;
   pageSize?: number;
+  offset?: number;
 }
 
 /**
@@ -118,7 +123,7 @@ export interface SearchTopicParams {
  * Falls back to general news if insufficient results.
  */
 export async function searchTopicLocal(params: SearchTopicParams): Promise<NewsArticle[]> {
-  const { countryCode, countryName, topicQuery, freshness, pageSize = 10 } = params;
+  const { countryCode, countryName, topicQuery, freshness, pageSize = 10, offset } = params;
 
   // Attempt 1: topic + country name
   const attempt1 = await fetchBraveSearch({
@@ -126,6 +131,7 @@ export async function searchTopicLocal(params: SearchTopicParams): Promise<NewsA
     count: pageSize,
     freshness,
     country: countryCode,
+    offset,
   });
   if (attempt1.length >= 5) return attempt1;
 
@@ -135,6 +141,7 @@ export async function searchTopicLocal(params: SearchTopicParams): Promise<NewsA
     count: pageSize,
     freshness,
     country: countryCode,
+    offset,
   });
 
   const combined = [...attempt1];
@@ -153,6 +160,7 @@ export async function searchTopicLocal(params: SearchTopicParams): Promise<NewsA
     count: pageSize,
     freshness,
     country: countryCode,
+    offset,
   });
   for (const article of fallback) {
     if (!seenUrls.has(article.url)) {
@@ -172,14 +180,16 @@ export async function searchTopicContinent(params: {
   topicQuery: string;
   freshness: string;
   pageSize?: number;
+  offset?: number;
 }): Promise<NewsArticle[]> {
-  const { continentName, topicQuery, freshness, pageSize = 10 } = params;
+  const { continentName, topicQuery, freshness, pageSize = 10, offset } = params;
 
   const results = await fetchBraveSearch({
     query: `${topicQuery} ${continentName} news`,
     count: pageSize,
     freshness,
     searchLang: 'en',
+    offset,
   });
 
   if (results.length >= 5) return results;
@@ -190,6 +200,7 @@ export async function searchTopicContinent(params: {
     count: pageSize,
     freshness,
     searchLang: 'en',
+    offset,
   });
 
   const seenUrls = new Set(results.map((a) => a.url));

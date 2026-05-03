@@ -11,6 +11,8 @@ export default function ConfigureApiScreen() {
     apiKey: '',
     baseUrl: '',
     model: 'gpt-4o',
+    lightweightModel: 'gpt-4o-mini',
+    thinkingModel: 'gpt-4o',
   });
   const [showKey, setShowKey] = useState(false);
   const [braveApiKey, setBraveApiKey] = useState('');
@@ -50,10 +52,13 @@ export default function ConfigureApiScreen() {
 
   const handleProviderChange = (provider: ApiProvider) => {
     const option = providerOptions.find((o) => o.value === provider);
+    const defaultModel = option?.defaultModel ?? '';
     setConfig((prev) => ({
       ...prev,
       provider,
-      model: option?.defaultModel ?? '',
+      model: defaultModel,
+      lightweightModel: defaultModel,
+      thinkingModel: defaultModel,
       baseUrl: option?.defaultBaseUrl ?? '',
     }));
   };
@@ -214,7 +219,35 @@ export default function ConfigureApiScreen() {
             className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-slate-500 mt-2">
-            The model identifier used for chat completions, e.g. gpt-4o, claude-3-5-sonnet, etc.
+            Default model identifier used for chat completions, e.g. gpt-4o, claude-3-5-sonnet, etc.
+          </p>
+        </Section>
+
+        {/* Lightweight Model */}
+        <Section icon={Cpu} title="Lightweight Model (News Research)">
+          <input
+            type="text"
+            value={config.lightweightModel}
+            onChange={(e) => setConfig((prev) => ({ ...prev, lightweightModel: e.target.value }))}
+            placeholder="gpt-4o-mini"
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="text-xs text-slate-500 mt-2">
+            Fast, cheap model used by Agent 1A for article discovery and scoring. Recommended: gpt-4o-mini, claude-3-5-haiku.
+          </p>
+        </Section>
+
+        {/* Thinking Model */}
+        <Section icon={Cpu} title="Thinking Model (Script Writing & Editing)">
+          <input
+            type="text"
+            value={config.thinkingModel}
+            onChange={(e) => setConfig((prev) => ({ ...prev, thinkingModel: e.target.value }))}
+            placeholder="gpt-4o"
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <p className="text-xs text-slate-500 mt-2">
+            High-quality model used by Agent 1B, editors, and writers. Recommended: gpt-4o, claude-3-7-sonnet, o3.
           </p>
         </Section>
 
@@ -315,7 +348,7 @@ export default function ConfigureApiScreen() {
             <div className="space-y-1">
               <div className="text-sm text-slate-200">Skip Editor Loop</div>
               <p className="text-xs text-slate-500">
-                When enabled, the pipeline runs Agent 1 (Researcher) and then jumps straight to Agent 6 (Audio Producer),
+                When enabled, the pipeline runs Article Research and Script Writer and then jumps straight to Audio Producer,
                 skipping all editors, writers, and the assembler. Useful for quickly testing voice and music combinations.
               </p>
             </div>

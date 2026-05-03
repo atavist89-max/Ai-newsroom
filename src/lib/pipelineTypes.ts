@@ -2,7 +2,8 @@ import type { SessionConfig } from './sessionConfig';
 import type { SegmentId } from './fileManager';
 
 export type StageId =
-  | 'agent1'
+  | 'articleResearch'
+  | 'scriptWriter'
   | 'fullScriptEditor'
   | 'fullScriptWriter'
   | 'segmentWriter'
@@ -103,7 +104,8 @@ export interface PipelineCallbacks {
 }
 
 export interface AgentMap {
-  agent1: AgentFn;
+  articleResearch: AgentFn;
+  scriptWriter: AgentFn;
   fullScriptEditor: AgentFn;
   fullScriptWriter: AgentFn;
   segmentWriter: AgentFn;
@@ -152,10 +154,11 @@ export interface MechanicalAudit {
 }
 
 export const STAGE_DEFINITIONS: Omit<StageRecord, 'status' | 'iteration' | 'reasoning' | 'output' | 'metadata' | 'startedAt' | 'completedAt'>[] = [
-  { id: 'agent1', name: 'Researcher', shortName: 'Research', icon: 'Search' },
+  { id: 'articleResearch', name: 'Article Researcher', shortName: 'Research', icon: 'Search' },
+  { id: 'scriptWriter', name: 'Script Writer', shortName: 'Write', icon: 'PenTool' },
   { id: 'fullScriptEditor', name: 'Full Script Editor', shortName: 'Full Edit', icon: 'ClipboardCheck' },
   { id: 'fullScriptWriter', name: 'Full Script Writer', shortName: 'Full Write', icon: 'PenTool' },
-  { id: 'topicLoop', name: 'Topic Review', shortName: 'Review', icon: 'LayoutGrid' },
+  { id: 'topicLoop', name: 'Segment Review', shortName: 'Review', icon: 'LayoutGrid' },
   { id: 'assembler', name: 'Assembler', shortName: 'Assemble', icon: 'Layers' },
   { id: 'agent6', name: 'Audio Producer', shortName: 'Audio', icon: 'Headphones' },
 ];

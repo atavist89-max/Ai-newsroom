@@ -1,5 +1,6 @@
 import type { AgentMap } from '../lib/pipelineTypes';
-import { createAgent1 } from './agent1';
+import { createArticleResearcher } from './articleResearcher';
+import { createScriptWriter } from './scriptWriter';
 import { createFullScriptEditor } from './fullScriptEditor';
 import { createFullScriptWriter } from './fullScriptWriter';
 import { createSegmentWriter } from './segmentWriter';
@@ -9,7 +10,8 @@ import { createAudioProducer } from './audioProducer';
 
 export function createAgentMap(): AgentMap {
   return {
-    agent1: createAgent1(),
+    articleResearch: createArticleResearcher(),
+    scriptWriter: createScriptWriter(),
     fullScriptEditor: createFullScriptEditor(),
     fullScriptWriter: createFullScriptWriter(),
     segmentWriter: createSegmentWriter(),

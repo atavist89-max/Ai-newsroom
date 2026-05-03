@@ -9,6 +9,8 @@ export const defaultApiConfig: ApiConfig = {
   apiKey: '',
   baseUrl: '',
   model: 'gpt-4o',
+  lightweightModel: 'gpt-4o-mini',
+  thinkingModel: 'gpt-4o',
 };
 
 export async function loadApiConfig(): Promise<ApiConfig> {
@@ -41,13 +43,15 @@ export const providerOptions: { value: ApiProvider; label: string; defaultModel:
 
 export async function callLLM(
   config: ApiConfig,
-  prompt: string
+  prompt: string,
+  modelOverride?: string
 ): Promise<{ content: string; reasoning?: string }> {
   const url = config.baseUrl.trim()
     ? `${config.baseUrl.replace(/\/$/, '')}/chat/completions`
     : 'https://api.openai.com/v1/chat/completions';
 
-  const body = buildLlmBody(config.model || 'gpt-4o', [
+  const model = modelOverride || config.model || 'gpt-4o';
+  const body = buildLlmBody(model, [
     { role: 'user', content: prompt },
   ], {
     maxTokens: 24000,
@@ -77,7 +81,8 @@ export interface StreamCallbacks {
 export async function streamLLM(
   config: ApiConfig,
   prompt: string,
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  modelOverride?: string
 ): Promise<{ diagnostics: string[] }> {
   const url = config.baseUrl.trim()
     ? `${config.baseUrl.replace(/\/$/, '')}/chat/completions`
@@ -91,8 +96,9 @@ export async function streamLLM(
   let finishReason: string | null = null;
   let doneViaDone = false;
 
+  const model = modelOverride || config.model || 'gpt-4o';
   const requestBody = buildLlmBody(
-    config.model || 'gpt-4o',
+    model,
     [{ role: 'user', content: prompt }],
     {
       stream: true,

@@ -5,6 +5,8 @@ on:
     branches:
       - AI-Newsroom-Mobile
       - AI-Newsroom-Full-App
+      - new-fetcher-test
+      - main
   workflow_dispatch:
 
 jobs:
