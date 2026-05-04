@@ -110,14 +110,14 @@ The pipeline is built around seven specialized agents. Each has a single job, an
         ┌─────────────┴───────────────────────┐
         │      APPROVED             REJECTED  │
         ▼                                     ▼
-┌─────────────────┐       ┌─────────────────────────┐
-│  STEP 6         │       │  STEP 5a: FULL SCRIPT   │
-│  AUDIO PRODUCER │       │  WRITER                 │
-│  (agent6)       │       │  Fix script-wide issues │
-│  Strip XML →    │       │                         │
-│  Generate audio │       │  └─► back to Step 5     │
-└─────────────────┘       │                         │
-        │                 └─────────────────────────┘
+┌─────────────────┐              ┌─────────────────────────┐
+│  STEP 6         │              │  STEP 5a: FULL SCRIPT   │
+│  AUDIO PRODUCER │              │  WRITER                 │
+│  (agent6)       │              │  Fix script-wide issues │
+│  Strip XML →    │              │                         │
+│  Generate audio │              │  └─► back to Step 5     │
+└─────────────────┘              │                         │
+        │                        └─────────────────────────┘
         ▼
        ✅ COMPLETE               
 ```
