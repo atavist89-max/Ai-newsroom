@@ -1,4 +1,4 @@
-# AI Newsroom
+# AI Newsroom Side-Loaded Android App
 
 **Your personal AI news producer. In your pocket.**
 
