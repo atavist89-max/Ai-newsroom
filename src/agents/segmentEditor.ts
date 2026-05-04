@@ -34,9 +34,9 @@ export function createSegmentEditor(): AgentFn {
     } else if (targetSegmentId === 'article4' || targetSegmentId === 'article5') {
       const selectedMap = await readSelectedArticles();
       if (targetSegmentId === 'article4') {
-        topicName = selectedMap['article4']?.topic || sessionConfig.content.topics[0] ?? 'Unknown';
+        topicName = (selectedMap['article4']?.topic || sessionConfig.content.topics[0]) ?? 'Unknown';
       } else {
-        topicName = selectedMap['article5']?.topic || sessionConfig.content.topics[1] ?? 'Unknown';
+        topicName = (selectedMap['article5']?.topic || sessionConfig.content.topics[1]) ?? 'Unknown';
       }
     } else if (targetSegmentId === 'article6') {
       topicName = sessionConfig.content.topics[0] ?? 'Unknown';
