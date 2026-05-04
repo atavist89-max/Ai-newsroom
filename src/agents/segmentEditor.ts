@@ -57,7 +57,7 @@ export function createSegmentEditor(): AgentFn {
     let reasoning = '';
     const apiConfig = await loadApiConfig();
 
-    const { diagnostics } = await streamLLM(apiConfig.main, prompt, {
+    const { diagnostics } = await streamLLM(apiConfig.thinking, prompt, {
       onReasoningChunk: (chunk) => {
         reasoning += chunk;
         onReasoningChunk(chunk);

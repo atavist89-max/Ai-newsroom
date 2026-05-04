@@ -90,7 +90,6 @@ export interface ApiConfig {
 }
 
 export interface AppApiConfig {
-  main: ApiConfig;
   lightweight: ApiConfig;
   thinking: ApiConfig;
 }

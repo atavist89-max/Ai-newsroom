@@ -12,14 +12,12 @@ const defaultSingleConfig: ApiConfig = {
 };
 
 export const defaultAppApiConfig: AppApiConfig = {
-  main: { ...defaultSingleConfig, model: 'gpt-4o' },
   lightweight: { ...defaultSingleConfig, model: 'gpt-4o-mini' },
   thinking: { ...defaultSingleConfig, model: 'o3-mini' },
 };
 
 function migrateOldConfig(parsed: Record<string, unknown>): AppApiConfig {
   // Old flat format had provider, apiKey, baseUrl, model, lightweightModel, thinkingModel
-  const oldModel = typeof parsed.model === 'string' ? parsed.model : 'gpt-4o';
   const oldProvider = (parsed.provider as ApiProvider) || 'openai';
   const oldApiKey = typeof parsed.apiKey === 'string' ? parsed.apiKey : '';
   const oldBaseUrl = typeof parsed.baseUrl === 'string' ? parsed.baseUrl : '';
@@ -27,7 +25,6 @@ function migrateOldConfig(parsed: Record<string, unknown>): AppApiConfig {
   const oldThinking = typeof parsed.thinkingModel === 'string' ? parsed.thinkingModel : 'o3-mini';
 
   return {
-    main: { provider: oldProvider, apiKey: oldApiKey, baseUrl: oldBaseUrl, model: oldModel },
     lightweight: { provider: oldProvider, apiKey: oldApiKey, baseUrl: oldBaseUrl, model: oldLightweight },
     thinking: { provider: oldProvider, apiKey: oldApiKey, baseUrl: oldBaseUrl, model: oldThinking },
   };

@@ -5,15 +5,9 @@ import { cn } from '../lib/utils';
 import { loadApiConfig, saveApiConfig, testApiConnection, loadBraveApiKey, saveBraveApiKey, testBraveApiKey, loadTtsApiKey, saveTtsApiKey, testTtsApiKey, loadTestMode, saveTestMode, providerOptions, defaultAppApiConfig } from '../lib/apiConfig';
 import type { AppApiConfig, ApiProvider } from '../types';
 
-type ConnectionKey = 'main' | 'lightweight' | 'thinking';
+type ConnectionKey = 'lightweight' | 'thinking';
 
 const CONNECTION_META: Record<ConnectionKey, { label: string; description: string; icon: typeof Cpu; color: string }> = {
-  main: {
-    label: 'Main Connection',
-    description: 'Used by Segment Editor and Segment Writer for per-article audits and rewrites.',
-    icon: Cpu,
-    color: 'blue',
-  },
   lightweight: {
     label: 'Lightweight Connection',
     description: 'Used by Article Researcher for fast article discovery and scoring. Recommended: gpt-4o-mini, claude-3-5-haiku.',
@@ -22,7 +16,7 @@ const CONNECTION_META: Record<ConnectionKey, { label: string; description: strin
   },
   thinking: {
     label: 'Thinking Connection',
-    description: 'Used by Script Writer and Full Script Editor/Writer for deep reasoning. Recommended: o3-mini, claude-3-7-sonnet, gpt-5.5.',
+    description: 'Used by Script Writer, Editors, and Writers for deep reasoning. Recommended: o3-mini, claude-3-7-sonnet, gpt-5.5.',
     icon: Cpu,
     color: 'purple',
   },
@@ -30,7 +24,7 @@ const CONNECTION_META: Record<ConnectionKey, { label: string; description: strin
 
 export default function ConfigureApiScreen() {
   const [config, setConfig] = useState<AppApiConfig>({ ...defaultAppApiConfig });
-  const [showKey, setShowKey] = useState<Record<ConnectionKey, boolean>>({ main: false, lightweight: false, thinking: false });
+  const [showKey, setShowKey] = useState<Record<ConnectionKey, boolean>>({ lightweight: false, thinking: false });
   const [braveApiKey, setBraveApiKey] = useState('');
   const [showBraveKey, setShowBraveKey] = useState(false);
   const [ttsApiKey, setTtsApiKey] = useState('');
@@ -43,8 +37,8 @@ export default function ConfigureApiScreen() {
     requestBody?: Record<string, unknown>;
     changes?: Array<{ key: string; from: unknown; to: unknown }>;
     warning?: string;
-  } | null>>({ main: null, lightweight: null, thinking: null });
-  const [isTesting, setIsTesting] = useState<Record<ConnectionKey, boolean>>({ main: false, lightweight: false, thinking: false });
+  } | null>>({ lightweight: null, thinking: null });
+  const [isTesting, setIsTesting] = useState<Record<ConnectionKey, boolean>>({ lightweight: false, thinking: false });
 
   const [isTestingBrave, setIsTestingBrave] = useState(false);
   const [braveTestResult, setBraveTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -172,19 +166,6 @@ export default function ConfigureApiScreen() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        {/* Main Connection */}
-        <ConnectionPanel
-          connection="main"
-          config={config.main}
-          showKey={showKey.main}
-          onToggleKey={() => setShowKey((prev) => ({ ...prev, main: !prev.main }))}
-          onChange={(partial) => setConfig((prev) => ({ ...prev, main: { ...prev.main, ...partial } }))}
-          onProviderChange={(provider) => handleProviderChange('main', provider)}
-          isTesting={isTesting.main}
-          testResult={testResults.main}
-          onTest={() => handleTest('main')}
-        />
-
         {/* Lightweight Connection */}
         <ConnectionPanel
           connection="lightweight"

@@ -51,7 +51,7 @@ export default function NewsroomScreen({ sessionContext: _sessionContext, onSess
   // Check API keys on mount
   useEffect(() => {
     Promise.all([loadApiConfig(), loadBraveApiKey(), loadTtsApiKey()]).then(([llmConfig, braveKey, ttsKey]) => {
-      const hasLlmKey = !!llmConfig.main.apiKey.trim() || !!llmConfig.lightweight.apiKey.trim() || !!llmConfig.thinking.apiKey.trim();
+      const hasLlmKey = !!llmConfig.lightweight.apiKey.trim() || !!llmConfig.thinking.apiKey.trim();
       setHasApiKey(hasLlmKey && !!braveKey.trim() && !!ttsKey.trim());
     });
   }, []);
