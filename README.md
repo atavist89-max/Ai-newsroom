@@ -70,38 +70,38 @@ The pipeline is built around seven specialized agents. Each has a single job, an
                            │
         ┌─────────────┴──────────────────────────────────┐
         │      APPROVED                      REJECTED    │
-        ▼                                                ▼
-┌───────────────┐                             ┌─────────────────────────┐
-│               │                             │  STEP 2a: FULL SCRIPT   │
-│  ╔════════════╧══════════════════════════╗  │  WRITER                 │
-│  ║  PARALLEL ARTICLE LOOP               ║  │  Fix script-wide issues │
-│  ║  (Steps 3–3a, all articles at once)  ║  │                         │
-│  ║                                       ║  │  └─► back to Step 2     │
-│  ║  Step 3:  Segment Editor              ║  └─────────────────────────┘
-│  ║           (Articles 1–9 simultaneously)║
-│  ║           ├─ APPROVED ─► done         ║
-│  ║           └─ REJECTED ─► Step 3a      ║
-│  ║                                       ║
-│  ║  Step 3a: Segment Writer              ║
-│  ║           (per-article, eager retry)  ║
-│  ║           └─► back to Step 3          ║
-│  ║                                       ║
-│  ║  Round-based stall recovery:          ║
-│  ║  stalled articles retry together      ║
-│  ║  after each wave settles              ║
-│  ╚═════════════════╤═════════════════════╝
-│                    │
-│                    └─► after all articles approved
-│                                                ▼
-┌─────────────────┐
-│  STEP 4         │
-│  ASSEMBLER      │
-│  (pure code)    │
-│  Concatenate    │
-│  all segments   │
-└─────────────────┘
-        │
-        ▼
+        │                                                ▼
+        │                                        ┌─────────────────────────┐
+        ▼                                        │  STEP 2a: FULL SCRIPT   │
+   ╔════════════════════════════════════════╗    │  WRITER                 │
+   ║  PARALLEL ARTICLE LOOP                 ║    │  Fix script-wide issues │
+   ║  (Steps 3–3a, all articles at once)    ║    │                         │
+   ║                                        ║    │  └─► back to Step 2     │
+   ║  Step 3:  Segment Editor               ║    └─────────────────────────┘
+   ║           (Articles 1–9 simultaneously)║
+   ║           ├─ APPROVED ─► done          ║
+   ║           └─ REJECTED ─► Step 3a       ║
+   ║                                        ║
+   ║  Step 3a: Segment Writer               ║
+   ║           (per-article, eager retry)   ║
+   ║           └─► back to Step 3           ║
+   ║                                        ║
+   ║  Round-based stall recovery:           ║
+   ║  stalled articles retry together       ║
+   ║  after each wave settles               ║
+   ╚═════════════════╤══════════════════════╝
+                     │
+                     │  after all articles approved
+                     ▼                            
+            ┌─────────────────┐
+            │  STEP 4         │
+            │  ASSEMBLER      │
+            │  (pure code)    │
+            │  Concatenate    │
+            │  all segments   │
+            └─────────────────┘
+                    │
+                    ▼
 ┌──────────────────────────────────────────────┐
 │  STEP 5: FULL SCRIPT EDITOR  (Pass 2)        │
 │  Verify coherence & bias after rewrites      │
