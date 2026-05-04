@@ -8,6 +8,7 @@ export function buildSegmentWriterPrompt(
   contextSegments: Record<SegmentId, string>,
   targetSegmentId: SegmentId,
   rewriterInstructions: string,
+  topicName: string,
   _iteration: number = 1
 ): string {
   const biasInstructions = biasAgent1Instructions[config.editorial.biasId];
@@ -66,7 +67,7 @@ ${biasInstructions}
 Return ONLY the rewritten segment, wrapped in XML tags exactly like this:
 
 \`\`\`
-<segment id="${targetSegmentId}" topic="${config.content.topics[0]}">
+<segment id="${targetSegmentId}" topic="${topicName}">
 [rewritten content]
 </segment>
 \`\`\`

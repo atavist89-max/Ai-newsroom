@@ -29,7 +29,7 @@ export function createFullScriptWriter(): AgentFn {
     let reasoning = '';
     const apiConfig = await loadApiConfig();
 
-    const { diagnostics } = await streamLLM(apiConfig, prompt, {
+    const { diagnostics } = await streamLLM(apiConfig.thinking, prompt, {
       onReasoningChunk: (chunk) => {
         reasoning += chunk;
         onReasoningChunk(chunk);

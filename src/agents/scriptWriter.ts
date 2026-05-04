@@ -30,9 +30,8 @@ export function createScriptWriter(): AgentFn {
     let draft = '';
     let reasoning = '';
     const apiConfig = await loadApiConfig();
-    const thinkingModel = apiConfig.thinkingModel || apiConfig.model;
 
-    const { diagnostics } = await streamLLM(apiConfig, prompt, {
+    const { diagnostics } = await streamLLM(apiConfig.thinking, prompt, {
       onReasoningChunk: (chunk) => {
         reasoning += chunk;
         onReasoningChunk(chunk);
@@ -47,7 +46,7 @@ export function createScriptWriter(): AgentFn {
       onDone: () => {
         onReasoningChunk('\nDraft generation complete.\n');
       },
-    }, thinkingModel);
+    });
 
     // Parse output
     onReasoningChunk('Parsing output...\n');

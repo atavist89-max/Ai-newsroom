@@ -46,7 +46,6 @@ export function createArticleResearcher(): AgentFn {
     }
 
     const apiConfig = await loadApiConfig();
-    const lightweightModel = apiConfig.lightweightModel || apiConfig.model;
 
     // ========================================================================
     // PHASE 1: Search
@@ -138,7 +137,7 @@ export function createArticleResearcher(): AgentFn {
             url: a.url,
           })));
 
-          const { content } = await callLLM(apiConfig, prompt, lightweightModel);
+          const { content } = await callLLM(apiConfig.lightweight, prompt);
 
           let parsedScores: ScoredArticle[] = [];
           try {

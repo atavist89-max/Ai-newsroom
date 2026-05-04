@@ -1,32 +1,56 @@
 import { Preferences } from '@capacitor/preferences';
-import type { ApiConfig, ApiProvider } from '../types';
+import type { ApiConfig, AppApiConfig, ApiProvider } from '../types';
 import { fetchWithAdaptiveRetry, buildLlmBody } from './llmAdapter';
 
 const API_CONFIG_KEY = 'api_config';
 
-export const defaultApiConfig: ApiConfig = {
+const defaultSingleConfig: ApiConfig = {
   provider: 'openai',
   apiKey: '',
   baseUrl: '',
   model: 'gpt-4o',
-  lightweightModel: 'gpt-4o-mini',
-  thinkingModel: 'gpt-4o',
 };
 
-export async function loadApiConfig(): Promise<ApiConfig> {
+export const defaultAppApiConfig: AppApiConfig = {
+  main: { ...defaultSingleConfig, model: 'gpt-4o' },
+  lightweight: { ...defaultSingleConfig, model: 'gpt-4o-mini' },
+  thinking: { ...defaultSingleConfig, model: 'o3-mini' },
+};
+
+function migrateOldConfig(parsed: Record<string, unknown>): AppApiConfig {
+  // Old flat format had provider, apiKey, baseUrl, model, lightweightModel, thinkingModel
+  const oldModel = typeof parsed.model === 'string' ? parsed.model : 'gpt-4o';
+  const oldProvider = (parsed.provider as ApiProvider) || 'openai';
+  const oldApiKey = typeof parsed.apiKey === 'string' ? parsed.apiKey : '';
+  const oldBaseUrl = typeof parsed.baseUrl === 'string' ? parsed.baseUrl : '';
+  const oldLightweight = typeof parsed.lightweightModel === 'string' ? parsed.lightweightModel : 'gpt-4o-mini';
+  const oldThinking = typeof parsed.thinkingModel === 'string' ? parsed.thinkingModel : 'o3-mini';
+
+  return {
+    main: { provider: oldProvider, apiKey: oldApiKey, baseUrl: oldBaseUrl, model: oldModel },
+    lightweight: { provider: oldProvider, apiKey: oldApiKey, baseUrl: oldBaseUrl, model: oldLightweight },
+    thinking: { provider: oldProvider, apiKey: oldApiKey, baseUrl: oldBaseUrl, model: oldThinking },
+  };
+}
+
+export async function loadApiConfig(): Promise<AppApiConfig> {
   try {
     const { value } = await Preferences.get({ key: API_CONFIG_KEY });
     if (value) {
-      const parsed = JSON.parse(value) as Partial<ApiConfig>;
-      return { ...defaultApiConfig, ...parsed };
+      const parsed = JSON.parse(value) as Record<string, unknown>;
+      // Detect old flat format: has 'lightweightModel' or 'thinkingModel' keys, or no 'main' key
+      if ('lightweightModel' in parsed || 'thinkingModel' in parsed || !('main' in parsed)) {
+        return migrateOldConfig(parsed);
+      }
+      return { ...defaultAppApiConfig, ...parsed } as AppApiConfig;
     }
   } catch {
     // ignore parse errors
   }
-  return { ...defaultApiConfig };
+  return { ...defaultAppApiConfig };
 }
 
-export async function saveApiConfig(config: ApiConfig): Promise<void> {
+export async function saveApiConfig(config: AppApiConfig): Promise<void> {
   await Preferences.set({
     key: API_CONFIG_KEY,
     value: JSON.stringify(config),

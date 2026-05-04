@@ -10,15 +10,15 @@ export function buildFullScriptEditorPrompt(
   const hasEditorialSegment = config.editorial.includeSegment;
 
   return `## ROLE
-You are a senior podcast editor performing a script-wide editorial audit. You evaluate ONLY global, cross-cutting issues — not individual topic quality. Return a structured JSON verdict.
+You are a senior podcast editor performing a script-wide editorial audit. You evaluate ONLY global, cross-cutting issues — not individual article quality. Return a structured JSON verdict.
 
 ${formatSessionContextForLLM(config)}
 
 ## DRAFT TO AUDIT (Iteration ${iteration})
 
-Themes 1-3 are LOCAL (${config.geography.country.name}) news.
-Themes 4-6 are ${config.geography.continent.name} continent news.
-${hasEditorialSegment ? 'Story 7 is the EDITORIAL SEGMENT.' : 'NO Editorial Segment should be present.'}
+Articles 1-5 are LOCAL (${config.geography.country.name}) news.
+Articles 6-8 are ${config.geography.continent.name} continent news.
+${hasEditorialSegment ? 'The EDITORIAL SEGMENT follows Article 8.' : 'NO Editorial Segment should be present.'}
 
 Topics: ${topicList}
 
@@ -30,8 +30,8 @@ ${draft}
 
 Verify the script has ALL required segments with intact XML tags:
 - <segment id="intro"> present and non-empty
-- <segment id="topic1" topic="..."> through <segment id="topic6" topic="..."> present and non-empty
-${hasEditorialSegment ? '- <segment id="topic7" topic="Editorial"> present and non-empty' : '- NO <segment id="topic7"> tag anywhere'}
+- <segment id="article1" topic="..."> through <segment id="article8" topic="..."> present and non-empty
+${hasEditorialSegment ? '- <segment id="editorial" topic="Editorial"> present and non-empty' : '- NO <segment id="editorial"> tag anywhere (when editorial is disabled)'}
 - <segment id="outro"> present and non-empty
 
 If ANY segment is missing or empty, the script FAILS structurally.
@@ -40,9 +40,9 @@ If ANY segment is missing or empty, the script FAILS structurally.
 
 A script FAILS coherence if any of these are missing:
 
-- **Transitions**: Each theme (after first) opens with a 1-sentence bridge from the previous.
-- **Progression**: Logical flow: Local Topic 1 → 2 → 3 → Continent Topic 1 → 2 → 3.
-- **Cross-references**: At least one explicit reference between themes.
+- **Transitions**: Each article (after the first) opens with a 1-sentence bridge from the previous.
+- **Progression**: Logical flow: Article 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8.
+- **Cross-references**: At least one explicit reference between articles.
 - **Tone consistency**: Same register and listener-knowledge assumptions throughout.
 
 ## BIAS REQUIREMENTS
@@ -50,7 +50,7 @@ A script FAILS coherence if any of these are missing:
 The entire script must maintain ${config.editorial.biasLabel} perspective:
 
 - Headlines reflect ${config.editorial.biasLabel} framing (not neutral)
-- Theme order prioritizes ${config.editorial.biasLabel} priorities
+- Article order prioritizes ${config.editorial.biasLabel} priorities
 - Language choices align with ${config.editorial.biasLabel} terminology
 - Source selection gives voice to ${config.editorial.biasLabel}-aligned sources
 - No contradictory framing from opposing perspectives (unless for contrast)
@@ -58,7 +58,7 @@ The entire script must maintain ${config.editorial.biasLabel} perspective:
 ## YOUR TASK
 
 1. Check structural completeness: all segments present, XML tags intact.
-2. Check cross-theme coherence (transitions, progression, cross-references, tone).
+2. Check cross-article coherence (transitions, progression, cross-references, tone).
 3. Check bias consistency across the full script.
 4. Return JSON (see format below).
 

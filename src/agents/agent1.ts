@@ -98,7 +98,7 @@ export function createAgent1(): AgentFn {
     let reasoning = '';
     const apiConfig = await loadApiConfig();
 
-    const { diagnostics } = await streamLLM(apiConfig, prompt, {
+    const { diagnostics } = await streamLLM(apiConfig.main, prompt, {
       onReasoningChunk: (chunk) => {
         reasoning += chunk;
         onReasoningChunk(chunk);

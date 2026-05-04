@@ -63,18 +63,19 @@ export function extractSegment(id: SegmentId, text: string): Segment | null {
 export function buildFullScriptFromSegments(
   segmentContents: Record<SegmentId, string>,
   topics: string[],
-  includeEditorial: boolean
+  includeEditorial: boolean,
+  selectedArticles?: Record<string, { topic: string }>
 ): string {
   const segments: Segment[] = [
     { id: 'intro', content: segmentContents.intro },
     { id: 'article1', topic: topics[0], content: segmentContents.article1 },
     { id: 'article2', topic: topics[1], content: segmentContents.article2 },
     { id: 'article3', topic: topics[2], content: segmentContents.article3 },
-    { id: 'article4', topic: topics[0], content: segmentContents.article4 },
-    { id: 'article5', topic: topics[1], content: segmentContents.article5 },
-    { id: 'article6', topic: topics[2], content: segmentContents.article6 },
-    { id: 'article7', topic: topics[0], content: segmentContents.article7 },
-    { id: 'article8', topic: topics[1], content: segmentContents.article8 },
+    { id: 'article4', topic: selectedArticles?.['article4']?.topic || 'Local Wildcard', content: segmentContents.article4 },
+    { id: 'article5', topic: selectedArticles?.['article5']?.topic || 'Local Wildcard', content: segmentContents.article5 },
+    { id: 'article6', topic: topics[0], content: segmentContents.article6 },
+    { id: 'article7', topic: topics[1], content: segmentContents.article7 },
+    { id: 'article8', topic: topics[2], content: segmentContents.article8 },
   ];
 
   if (includeEditorial) {

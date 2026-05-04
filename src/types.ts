@@ -87,6 +87,10 @@ export interface ApiConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
-  lightweightModel?: string;
-  thinkingModel?: string;
+}
+
+export interface AppApiConfig {
+  main: ApiConfig;
+  lightweight: ApiConfig;
+  thinking: ApiConfig;
 }

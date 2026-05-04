@@ -1,33 +1,51 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Settings, Key, Globe, Cpu, Save, TestTube, Eye, EyeOff, Loader2, CheckCircle, XCircle, Search, FolderOpen, Headphones, Zap, AlertTriangle } from 'lucide-react';
+import { Settings, Cpu, Save, TestTube, Eye, EyeOff, Loader2, CheckCircle, XCircle, Search, FolderOpen, Headphones, Zap, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { loadApiConfig, saveApiConfig, testApiConnection, loadBraveApiKey, saveBraveApiKey, testBraveApiKey, loadTtsApiKey, saveTtsApiKey, testTtsApiKey, loadTestMode, saveTestMode, providerOptions } from '../lib/apiConfig';
-import type { ApiConfig, ApiProvider } from '../types';
+import { loadApiConfig, saveApiConfig, testApiConnection, loadBraveApiKey, saveBraveApiKey, testBraveApiKey, loadTtsApiKey, saveTtsApiKey, testTtsApiKey, loadTestMode, saveTestMode, providerOptions, defaultAppApiConfig } from '../lib/apiConfig';
+import type { AppApiConfig, ApiProvider } from '../types';
+
+type ConnectionKey = 'main' | 'lightweight' | 'thinking';
+
+const CONNECTION_META: Record<ConnectionKey, { label: string; description: string; icon: typeof Cpu; color: string }> = {
+  main: {
+    label: 'Main Connection',
+    description: 'Used by Segment Editor and Segment Writer for per-article audits and rewrites.',
+    icon: Cpu,
+    color: 'blue',
+  },
+  lightweight: {
+    label: 'Lightweight Connection',
+    description: 'Used by Article Researcher for fast article discovery and scoring. Recommended: gpt-4o-mini, claude-3-5-haiku.',
+    icon: Zap,
+    color: 'amber',
+  },
+  thinking: {
+    label: 'Thinking Connection',
+    description: 'Used by Script Writer and Full Script Editor/Writer for deep reasoning. Recommended: o3-mini, claude-3-7-sonnet, gpt-5.5.',
+    icon: Cpu,
+    color: 'purple',
+  },
+};
 
 export default function ConfigureApiScreen() {
-  const [config, setConfig] = useState<ApiConfig>({
-    provider: 'openai',
-    apiKey: '',
-    baseUrl: '',
-    model: 'gpt-4o',
-    lightweightModel: 'gpt-4o-mini',
-    thinkingModel: 'gpt-4o',
-  });
-  const [showKey, setShowKey] = useState(false);
+  const [config, setConfig] = useState<AppApiConfig>({ ...defaultAppApiConfig });
+  const [showKey, setShowKey] = useState<Record<ConnectionKey, boolean>>({ main: false, lightweight: false, thinking: false });
   const [braveApiKey, setBraveApiKey] = useState('');
   const [showBraveKey, setShowBraveKey] = useState(false);
   const [ttsApiKey, setTtsApiKey] = useState('');
   const [showTtsKey, setShowTtsKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
+
+  const [testResults, setTestResults] = useState<Record<ConnectionKey, {
     success: boolean;
     message: string;
     requestBody?: Record<string, unknown>;
     changes?: Array<{ key: string; from: unknown; to: unknown }>;
     warning?: string;
-  } | null>(null);
+  } | null>>({ main: null, lightweight: null, thinking: null });
+  const [isTesting, setIsTesting] = useState<Record<ConnectionKey, boolean>>({ main: false, lightweight: false, thinking: false });
+
   const [isTestingBrave, setIsTestingBrave] = useState(false);
   const [braveTestResult, setBraveTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTestingTts, setIsTestingTts] = useState(false);
@@ -50,16 +68,17 @@ export default function ConfigureApiScreen() {
     return () => { cancelled = true; };
   }, []);
 
-  const handleProviderChange = (provider: ApiProvider) => {
+  const handleProviderChange = (connection: ConnectionKey, provider: ApiProvider) => {
     const option = providerOptions.find((o) => o.value === provider);
     const defaultModel = option?.defaultModel ?? '';
     setConfig((prev) => ({
       ...prev,
-      provider,
-      model: defaultModel,
-      lightweightModel: defaultModel,
-      thinkingModel: defaultModel,
-      baseUrl: option?.defaultBaseUrl ?? '',
+      [connection]: {
+        ...prev[connection],
+        provider,
+        model: defaultModel,
+        baseUrl: option?.defaultBaseUrl ?? '',
+      },
     }));
   };
 
@@ -71,7 +90,6 @@ export default function ConfigureApiScreen() {
         saveBraveApiKey(braveApiKey),
         saveTtsApiKey(ttsApiKey),
         saveTestMode(testMode),
-
       ]);
       toast.success('API configuration saved!');
     } catch {
@@ -81,19 +99,19 @@ export default function ConfigureApiScreen() {
     }
   };
 
-  const handleTest = async () => {
-    setIsTesting(true);
-    setTestResult(null);
+  const handleTest = async (connection: ConnectionKey) => {
+    setIsTesting((prev) => ({ ...prev, [connection]: true }));
+    setTestResults((prev) => ({ ...prev, [connection]: null }));
     try {
-      const result = await testApiConnection(config);
-      setTestResult(result);
+      const result = await testApiConnection(config[connection]);
+      setTestResults((prev) => ({ ...prev, [connection]: result }));
       if (result.success) {
-        toast.success(result.message);
+        toast.success(`${CONNECTION_META[connection].label}: ${result.message}`);
       } else {
-        toast.error(result.message);
+        toast.error(`${CONNECTION_META[connection].label}: ${result.message}`);
       }
     } finally {
-      setIsTesting(false);
+      setIsTesting((prev) => ({ ...prev, [connection]: false }));
     }
   };
 
@@ -147,109 +165,51 @@ export default function ConfigureApiScreen() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white">Configure API</h1>
-              <p className="text-sm text-slate-400">Set up your LLM provider and Brave Search for news discovery</p>
+              <p className="text-sm text-slate-400">Set up three independent LLM connections for different pipeline stages</p>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-4">
-        {/* Provider */}
-        <Section icon={Cpu} title="API Provider">
-          <select
-            value={config.provider}
-            onChange={(e) => handleProviderChange(e.target.value as ApiProvider)}
-            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {providerOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-xs text-slate-500 mt-2">
-            Select the LLM provider you want to use for generating podcast scripts and audio.
-          </p>
-        </Section>
+        {/* Main Connection */}
+        <ConnectionPanel
+          connection="main"
+          config={config.main}
+          showKey={showKey.main}
+          onToggleKey={() => setShowKey((prev) => ({ ...prev, main: !prev.main }))}
+          onChange={(partial) => setConfig((prev) => ({ ...prev, main: { ...prev.main, ...partial } }))}
+          onProviderChange={(provider) => handleProviderChange('main', provider)}
+          isTesting={isTesting.main}
+          testResult={testResults.main}
+          onTest={() => handleTest('main')}
+        />
 
-        {/* API Key */}
-        <Section icon={Key} title="LLM API Key">
-          <div className="relative">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={config.apiKey}
-              onChange={(e) => setConfig((prev) => ({ ...prev, apiKey: e.target.value }))}
-              placeholder="sk-..."
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
-            />
-            <button
-              onClick={() => setShowKey((prev) => !prev)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-slate-700 text-slate-400 transition-colors"
-              title={showKey ? 'Hide API key' : 'Show API key'}
-            >
-              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            Your API key is stored locally on your device and never sent anywhere except to the provider you select above.
-          </p>
-        </Section>
+        {/* Lightweight Connection */}
+        <ConnectionPanel
+          connection="lightweight"
+          config={config.lightweight}
+          showKey={showKey.lightweight}
+          onToggleKey={() => setShowKey((prev) => ({ ...prev, lightweight: !prev.lightweight }))}
+          onChange={(partial) => setConfig((prev) => ({ ...prev, lightweight: { ...prev.lightweight, ...partial } }))}
+          onProviderChange={(provider) => handleProviderChange('lightweight', provider)}
+          isTesting={isTesting.lightweight}
+          testResult={testResults.lightweight}
+          onTest={() => handleTest('lightweight')}
+        />
 
-        {/* Base URL */}
-        <Section icon={Globe} title="Base URL (Optional)">
-          <input
-            type="text"
-            value={config.baseUrl}
-            onChange={(e) => setConfig((prev) => ({ ...prev, baseUrl: e.target.value }))}
-            placeholder="https://api.example.com/v1"
-            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-slate-500 mt-2">
-            Leave empty to use the provider's default endpoint. Use this for proxies, local models (Ollama), or Azure OpenAI.
-          </p>
-        </Section>
-
-        {/* Model */}
-        <Section icon={Cpu} title="Model">
-          <input
-            type="text"
-            value={config.model}
-            onChange={(e) => setConfig((prev) => ({ ...prev, model: e.target.value }))}
-            placeholder="gpt-4o"
-            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-slate-500 mt-2">
-            Default model identifier used for chat completions, e.g. gpt-4o, claude-3-5-sonnet, etc.
-          </p>
-        </Section>
-
-        {/* Lightweight Model */}
-        <Section icon={Cpu} title="Lightweight Model (News Research)">
-          <input
-            type="text"
-            value={config.lightweightModel}
-            onChange={(e) => setConfig((prev) => ({ ...prev, lightweightModel: e.target.value }))}
-            placeholder="gpt-4o-mini"
-            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-slate-500 mt-2">
-            Fast, cheap model used by Agent 1A for article discovery and scoring. Recommended: gpt-4o-mini, claude-3-5-haiku.
-          </p>
-        </Section>
-
-        {/* Thinking Model */}
-        <Section icon={Cpu} title="Thinking Model (Script Writing & Editing)">
-          <input
-            type="text"
-            value={config.thinkingModel}
-            onChange={(e) => setConfig((prev) => ({ ...prev, thinkingModel: e.target.value }))}
-            placeholder="gpt-4o"
-            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="text-xs text-slate-500 mt-2">
-            High-quality model used by Agent 1B, editors, and writers. Recommended: gpt-4o, claude-3-7-sonnet, o3.
-          </p>
-        </Section>
+        {/* Thinking Connection */}
+        <ConnectionPanel
+          connection="thinking"
+          config={config.thinking}
+          showKey={showKey.thinking}
+          onToggleKey={() => setShowKey((prev) => ({ ...prev, thinking: !prev.thinking }))}
+          onChange={(partial) => setConfig((prev) => ({ ...prev, thinking: { ...prev.thinking, ...partial } }))}
+          onProviderChange={(provider) => handleProviderChange('thinking', provider)}
+          isTesting={isTesting.thinking}
+          testResult={testResults.thinking}
+          onTest={() => handleTest('thinking')}
+        />
 
         {/* Brave Search API */}
         <Section icon={Search} title="Brave Search API">
@@ -391,57 +351,170 @@ export default function ConfigureApiScreen() {
             {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             {isSaving ? 'Saving...' : 'Save Configuration'}
           </button>
-
-          <button
-            onClick={handleTest}
-            disabled={isTesting || !config.apiKey.trim()}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 border border-slate-600 text-white rounded-lg font-medium hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isTesting ? <Loader2 className="w-5 h-5 animate-spin" /> : <TestTube className="w-5 h-5" />}
-            {isTesting ? 'Testing...' : 'Test LLM Connection'}
-          </button>
         </div>
+      </main>
+    </div>
+  );
+}
+
+function ConnectionPanel({
+  connection,
+  config,
+  showKey,
+  onToggleKey,
+  onChange,
+  onProviderChange,
+  isTesting,
+  testResult,
+  onTest,
+}: {
+  connection: ConnectionKey;
+  config: { provider: ApiProvider; apiKey: string; baseUrl: string; model: string };
+  showKey: boolean;
+  onToggleKey: () => void;
+  onChange: (partial: Partial<{ provider: ApiProvider; apiKey: string; baseUrl: string; model: string }>) => void;
+  onProviderChange: (provider: ApiProvider) => void;
+  isTesting: boolean;
+  testResult: {
+    success: boolean;
+    message: string;
+    requestBody?: Record<string, unknown>;
+    changes?: Array<{ key: string; from: unknown; to: unknown }>;
+    warning?: string;
+  } | null;
+  onTest: () => void;
+}) {
+  const meta = CONNECTION_META[connection];
+  const Icon = meta.icon;
+  const colorClasses: Record<string, { border: string; title: string; button: string }> = {
+    blue: { border: 'border-blue-500/30', title: 'text-blue-300', button: 'hover:bg-blue-900/30' },
+    amber: { border: 'border-amber-500/30', title: 'text-amber-300', button: 'hover:bg-amber-900/30' },
+    purple: { border: 'border-purple-500/30', title: 'text-purple-300', button: 'hover:bg-purple-900/30' },
+  };
+  const c = colorClasses[meta.color];
+
+  return (
+    <div className={cn('bg-slate-800/50 border rounded-lg p-4', c.border)}>
+      <h2 className={cn('text-sm font-medium mb-3 flex items-center gap-2', c.title)}>
+        <Icon className="w-4 h-4" />
+        {meta.label}
+      </h2>
+      <p className="text-xs text-slate-500 mb-3">{meta.description}</p>
+
+      <div className="space-y-3">
+        {/* Provider */}
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Provider</label>
+          <select
+            value={config.provider}
+            onChange={(e) => onProviderChange(e.target.value as ApiProvider)}
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {providerOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* API Key */}
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">API Key</label>
+          <div className="relative">
+            <input
+              type={showKey ? 'text' : 'password'}
+              value={config.apiKey}
+              onChange={(e) => onChange({ apiKey: e.target.value })}
+              placeholder="sk-..."
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+            />
+            <button
+              onClick={onToggleKey}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded hover:bg-slate-700 text-slate-400 transition-colors"
+              title={showKey ? 'Hide API key' : 'Show API key'}
+            >
+              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Base URL */}
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Base URL (Optional)</label>
+          <input
+            type="text"
+            value={config.baseUrl}
+            onChange={(e) => onChange({ baseUrl: e.target.value })}
+            placeholder="https://api.example.com/v1"
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Model */}
+        <div>
+          <label className="text-xs text-slate-400 mb-1 block">Model</label>
+          <input
+            type="text"
+            value={config.model}
+            onChange={(e) => onChange({ model: e.target.value })}
+            placeholder="gpt-4o"
+            className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Test Button */}
+        <button
+          onClick={onTest}
+          disabled={isTesting || !config.apiKey.trim()}
+          className={cn(
+            'w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 border border-slate-600 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed',
+            c.button
+          )}
+        >
+          {isTesting ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
+          {isTesting ? 'Testing...' : `Test ${meta.label}`}
+        </button>
 
         {/* Test Result */}
         {testResult && (
           <div className="space-y-2">
             <div
               className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg border',
+                'flex items-center gap-3 px-3 py-2 rounded-lg border text-sm',
                 testResult.success
                   ? 'bg-green-900/20 border-green-500/30 text-green-300'
                   : 'bg-red-900/20 border-red-500/30 text-red-300'
               )}
             >
-              {testResult.success ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <XCircle className="w-5 h-5 flex-shrink-0" />}
-              <span className="text-sm">{testResult.message}</span>
+              {testResult.success ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <XCircle className="w-4 h-4 flex-shrink-0" />}
+              <span>{testResult.message}</span>
             </div>
+            {testResult.warning && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg border bg-yellow-900/20 border-yellow-600/40 text-yellow-300 text-sm">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{testResult.warning}</span>
+              </div>
+            )}
             {testResult.requestBody && (
               <details className="bg-slate-900/50 border border-slate-700 rounded-lg" open>
-                <summary className="px-4 py-2 text-xs font-medium text-slate-400 cursor-pointer hover:text-slate-300 select-none">
-                  Request parameters (what the model runs with)
+                <summary className="px-3 py-2 text-xs font-medium text-slate-400 cursor-pointer hover:text-slate-300 select-none">
+                  Request parameters
                 </summary>
-                <pre className="px-4 pb-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-x-auto">
+                <pre className="px-3 pb-3 text-[11px] text-slate-400 whitespace-pre-wrap overflow-x-auto">
                   {JSON.stringify(testResult.requestBody, null, 2)}
                 </pre>
               </details>
             )}
-            {testResult.warning && (
-              <div className="flex items-start gap-2 px-4 py-3 rounded-lg border bg-yellow-900/20 border-yellow-600/40 text-yellow-300">
-                <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span className="text-sm">{testResult.warning}</span>
-              </div>
-            )}
             {testResult.changes && testResult.changes.length > 0 && (
               <details className="bg-amber-900/20 border border-amber-700/40 rounded-lg">
-                <summary className="px-4 py-2 text-xs font-medium text-amber-400 cursor-pointer hover:text-amber-300 select-none">
+                <summary className="px-3 py-2 text-xs font-medium text-amber-400 cursor-pointer hover:text-amber-300 select-none">
                   Changes applied ({testResult.changes.length})
                 </summary>
-                <div className="px-4 pb-3 space-y-1">
+                <div className="px-3 pb-3 space-y-1">
                   {testResult.changes.map((change) => (
                     <div key={change.key} className="text-[11px] text-amber-400/80">
-                      <span className="font-mono text-amber-300">{change.key}</span>
-                      {' '}
+                      <span className="font-mono text-amber-300">{change.key}</span>{' '}
                       {change.to === '<removed>' ? (
                         <span>removed (was {JSON.stringify(change.from)})</span>
                       ) : change.from === '<added>' ? (
@@ -458,7 +531,7 @@ export default function ConfigureApiScreen() {
             )}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

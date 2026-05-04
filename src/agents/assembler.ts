@@ -1,5 +1,5 @@
 import type { AgentFn } from '../lib/pipelineTypes';
-import { readAllSegments, writeFullScript } from '../lib/fileManager';
+import { readAllSegments, writeFullScript, readSelectedArticles } from '../lib/fileManager';
 import { assembleFullScript, type Segment } from '../lib/scriptParser';
 
 /**
@@ -13,6 +13,7 @@ export function createAssembler(): AgentFn {
 
     onReasoningChunk('Assembler: Reading all segment files...\n');
     const allSegments = await readAllSegments();
+    const selectedMap = await readSelectedArticles();
 
     // Build segment array
     const segments: Segment[] = [
@@ -20,11 +21,11 @@ export function createAssembler(): AgentFn {
       { id: 'article1', topic: sessionConfig.content.topics[0], content: allSegments.article1 },
       { id: 'article2', topic: sessionConfig.content.topics[1], content: allSegments.article2 },
       { id: 'article3', topic: sessionConfig.content.topics[2], content: allSegments.article3 },
-      { id: 'article4', topic: sessionConfig.content.topics[0], content: allSegments.article4 },
-      { id: 'article5', topic: sessionConfig.content.topics[1], content: allSegments.article5 },
-      { id: 'article6', topic: sessionConfig.content.topics[2], content: allSegments.article6 },
-      { id: 'article7', topic: sessionConfig.content.topics[0], content: allSegments.article7 },
-      { id: 'article8', topic: sessionConfig.content.topics[1], content: allSegments.article8 },
+      { id: 'article4', topic: selectedMap['article4']?.topic || 'Local Wildcard', content: allSegments.article4 },
+      { id: 'article5', topic: selectedMap['article5']?.topic || 'Local Wildcard', content: allSegments.article5 },
+      { id: 'article6', topic: sessionConfig.content.topics[0], content: allSegments.article6 },
+      { id: 'article7', topic: sessionConfig.content.topics[1], content: allSegments.article7 },
+      { id: 'article8', topic: sessionConfig.content.topics[2], content: allSegments.article8 },
     ];
 
     if (sessionConfig.editorial.includeSegment) {
