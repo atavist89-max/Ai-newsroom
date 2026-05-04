@@ -67,7 +67,7 @@ The pipeline is built around seven specialized agents. Each has a single job, an
 │  STEP 2: FULL SCRIPT EDITOR  (Pass 1)           │
 │  Check: segments present, coherence, bias       │
 └─────────────────────────────────────────────────┘
-                           │
+                      │
         ┌─────────────┴──────────────────────────────────┐
         │      APPROVED                      REJECTED    │
         │                                                ▼
