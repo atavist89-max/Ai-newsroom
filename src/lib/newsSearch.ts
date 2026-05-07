@@ -1,4 +1,3 @@
-import { CapacitorHttp } from '@capacitor/core';
 import { loadBraveApiKey } from './apiConfig';
 import { getCountryByCode, continents } from '../data/countries';
 
@@ -77,40 +76,36 @@ async function fetchBraveSearch(params: {
     throw new Error('Brave Search API key is missing. Go to Configure API to add one.');
   }
 
-  const queryParams: Record<string, string> = {
-    q: params.query,
-    count: String(Math.min(params.count || 10, 20)),
-    safesearch: 'off',
-  };
-  if (params.freshness) queryParams.freshness = params.freshness;
-  if (params.searchLang) queryParams.search_lang = params.searchLang;
+  const url = new URL(BRAVE_BASE_URL);
+  url.searchParams.set('q', params.query);
+  url.searchParams.set('count', String(Math.min(params.count || 10, 20)));
+  url.searchParams.set('safesearch', 'off');
+  if (params.freshness) url.searchParams.set('freshness', params.freshness);
+  if (params.searchLang) url.searchParams.set('search_lang', params.searchLang);
   if (params.country && BRAVE_SUPPORTED_COUNTRIES.has(params.country.toUpperCase())) {
-    queryParams.country = params.country.toLowerCase();
+    url.searchParams.set('country', params.country.toLowerCase());
   }
   if (params.offset !== undefined && params.offset > 0) {
-    queryParams.offset = String(params.offset);
+    url.searchParams.set('offset', String(params.offset));
   }
   if (params.goggles) {
-    queryParams.goggles = params.goggles;
+    url.searchParams.set('goggles', params.goggles);
   }
 
-  const response = await CapacitorHttp.request({
-    url: BRAVE_BASE_URL,
+  const response = await fetch(url.toString(), {
     method: 'GET',
     headers: {
       'Accept': 'application/json',
       'X-Subscription-Token': apiKey.trim(),
     },
-    params: queryParams,
-    responseType: 'json',
   });
 
-  if (response.status < 200 || response.status >= 300) {
-    const errorText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+  if (!response.ok) {
+    const errorText = await response.text();
     throw new Error(`Brave Search error: HTTP ${response.status} ${errorText}`);
   }
 
-  const data = response.data as BraveResponse;
+  const data = (await response.json()) as BraveResponse;
   const results = data.web?.results ?? [];
   return results.map((r) => normalizeArticle(r, params.country || 'XX'));
 }

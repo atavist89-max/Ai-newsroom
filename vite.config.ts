@@ -3,10 +3,10 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  base: './',
+  base: process.env.BASE_URL || './',
   build: {
-    outDir: 'ai-newsroom',
-    emptyOutDir: false,
+    outDir: 'dist',
+    emptyOutDir: true,
   },
   plugins: [react()],
   resolve: {

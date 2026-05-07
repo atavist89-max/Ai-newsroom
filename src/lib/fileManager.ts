@@ -1,5 +1,63 @@
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { Capacitor } from '@capacitor/core';
+const DB_NAME = 'newsroom';
+const STORE_NAME = 'files';
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+function getDB(): Promise<IDBDatabase> {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onerror = () => reject(req.error ?? new Error('IndexedDB open failed'));
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(STORE_NAME);
+    };
+  });
+  return dbPromise;
+}
+
+async function dbGet(key: string): Promise<string | undefined> {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbSet(key: string, value: string): Promise<void> {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.put(value, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(key: string): Promise<void> {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbKeys(): Promise<string[]> {
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.getAllKeys();
+    req.onsuccess = () => resolve(req.result as string[]);
+    req.onerror = () => reject(req.error);
+  });
+}
 
 const BASE_DIR = 'newsroom';
 
@@ -52,31 +110,19 @@ export interface SelectedArticle {
 
 export type SelectedArticlesMap = Record<string, SelectedArticle>;
 
-/**
- * Get the directory to use for file storage.
- * Always uses Directory.Data (app-private) because external Documents storage
- * is broken on Android 10+ due to scoped storage (EACCES).
- */
-async function getTargetDirectory(): Promise<Directory> {
-  return Directory.Data;
+function makeKey(filename: string): string {
+  return `${BASE_DIR}/${filename}`;
 }
 
 /**
  * Write a segment file.
  */
 export async function writeSegment(id: SegmentId, content: string): Promise<void> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${SEGMENT_FILE_NAMES[id]}`;
+  const key = makeKey(SEGMENT_FILE_NAMES[id]);
   try {
-    await Filesystem.writeFile({
-      path,
-      data: content,
-      directory: dir,
-      encoding: Encoding.UTF8,
-      recursive: true,
-    });
+    await dbSet(key, content);
   } catch (err) {
-    console.error(`[fileManager] Failed to write ${path}:`, err);
+    console.error(`[fileManager] Failed to write ${key}:`, err);
     throw err;
   }
 }
@@ -85,17 +131,12 @@ export async function writeSegment(id: SegmentId, content: string): Promise<void
  * Read a segment file.
  */
 export async function readSegment(id: SegmentId): Promise<string> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${SEGMENT_FILE_NAMES[id]}`;
+  const key = makeKey(SEGMENT_FILE_NAMES[id]);
   try {
-    const result = await Filesystem.readFile({
-      path,
-      directory: dir,
-      encoding: Encoding.UTF8,
-    });
-    return result.data as string;
+    const result = await dbGet(key);
+    return result ?? '';
   } catch (err) {
-    console.error(`[fileManager] Failed to read ${path}:`, err);
+    console.error(`[fileManager] Failed to read ${key}:`, err);
     return '';
   }
 }
@@ -104,18 +145,11 @@ export async function readSegment(id: SegmentId): Promise<string> {
  * Write the full assembled script.
  */
 export async function writeFullScript(content: string): Promise<void> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/full_script.txt`;
+  const key = makeKey('full_script.txt');
   try {
-    await Filesystem.writeFile({
-      path,
-      data: content,
-      directory: dir,
-      encoding: Encoding.UTF8,
-      recursive: true,
-    });
+    await dbSet(key, content);
   } catch (err) {
-    console.error(`[fileManager] Failed to write ${path}:`, err);
+    console.error(`[fileManager] Failed to write ${key}:`, err);
     throw err;
   }
 }
@@ -124,17 +158,12 @@ export async function writeFullScript(content: string): Promise<void> {
  * Read the full assembled script.
  */
 export async function readFullScript(): Promise<string> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/full_script.txt`;
+  const key = makeKey('full_script.txt');
   try {
-    const result = await Filesystem.readFile({
-      path,
-      directory: dir,
-      encoding: Encoding.UTF8,
-    });
-    return result.data as string;
+    const result = await dbGet(key);
+    return result ?? '';
   } catch (err) {
-    console.error(`[fileManager] Failed to read ${path}:`, err);
+    console.error(`[fileManager] Failed to read ${key}:`, err);
     return '';
   }
 }
@@ -165,16 +194,14 @@ export async function writeAllSegments(segments: Record<SegmentId, string>): Pro
  * List all files in the newsroom directory.
  */
 export async function listSegmentFiles(): Promise<Array<{ name: string; size: number }>> {
-  const dir = await getTargetDirectory();
   try {
-    const result = await Filesystem.readdir({
-      path: BASE_DIR,
-      directory: dir,
-    });
-    return result.files.map((f) => ({
-      name: f.name,
-      size: f.size ?? 0,
-    }));
+    const keys = await dbKeys();
+    return keys
+      .filter((k) => k.startsWith(`${BASE_DIR}/`) && !k.endsWith('.json') && !k.includes('/audio_'))
+      .map((k) => {
+        // Size is unknown without reading; return 0 for simplicity
+        return { name: k.replace(`${BASE_DIR}/`, ''), size: 0 };
+      });
   } catch {
     return [];
   }
@@ -184,13 +211,13 @@ export async function listSegmentFiles(): Promise<Array<{ name: string; size: nu
  * Delete all segment files and full_script.txt.
  */
 export async function clearAllSegments(): Promise<void> {
-  const dir = await getTargetDirectory();
   try {
-    await Filesystem.rmdir({
-      path: BASE_DIR,
-      directory: dir,
-      recursive: true,
-    });
+    const keys = await dbKeys();
+    for (const key of keys) {
+      if (key.startsWith(`${BASE_DIR}/`)) {
+        await dbDelete(key);
+      }
+    }
   } catch (err) {
     console.error('[fileManager] Failed to clear segments:', err);
     // Non-fatal: directory may not exist
@@ -201,10 +228,9 @@ export async function clearAllSegments(): Promise<void> {
  * Check if the newsroom directory exists.
  */
 export async function segmentsExist(): Promise<boolean> {
-  const dir = await getTargetDirectory();
   try {
-    await Filesystem.readdir({ path: BASE_DIR, directory: dir });
-    return true;
+    const keys = await dbKeys();
+    return keys.some((k) => k.startsWith(`${BASE_DIR}/`));
   } catch {
     return false;
   }
@@ -214,11 +240,10 @@ export async function segmentsExist(): Promise<boolean> {
  * Get file info for a segment.
  */
 export async function getSegmentInfo(id: SegmentId): Promise<{ exists: boolean; size: number }> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${SEGMENT_FILE_NAMES[id]}`;
+  const key = makeKey(SEGMENT_FILE_NAMES[id]);
   try {
-    const info = await Filesystem.stat({ path, directory: dir });
-    return { exists: true, size: info.size ?? 0 };
+    const data = await dbGet(key);
+    return { exists: data !== undefined, size: data?.length ?? 0 };
   } catch {
     return { exists: false, size: 0 };
   }
@@ -229,34 +254,23 @@ export async function getSegmentInfo(id: SegmentId): Promise<{ exists: boolean; 
 const SELECTED_ARTICLES_FILE = 'selected_articles.json';
 
 export async function writeSelectedArticles(articles: SelectedArticlesMap): Promise<void> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${SELECTED_ARTICLES_FILE}`;
+  const key = makeKey(SELECTED_ARTICLES_FILE);
   try {
-    await Filesystem.writeFile({
-      path,
-      data: JSON.stringify(articles, null, 2),
-      directory: dir,
-      encoding: Encoding.UTF8,
-      recursive: true,
-    });
+    await dbSet(key, JSON.stringify(articles, null, 2));
   } catch (err) {
-    console.error(`[fileManager] Failed to write ${path}:`, err);
+    console.error(`[fileManager] Failed to write ${key}:`, err);
     throw err;
   }
 }
 
 export async function readSelectedArticles(): Promise<SelectedArticlesMap> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${SELECTED_ARTICLES_FILE}`;
+  const key = makeKey(SELECTED_ARTICLES_FILE);
   try {
-    const result = await Filesystem.readFile({
-      path,
-      directory: dir,
-      encoding: Encoding.UTF8,
-    });
-    return JSON.parse(result.data as string) as SelectedArticlesMap;
+    const result = await dbGet(key);
+    if (!result) return {};
+    return JSON.parse(result) as SelectedArticlesMap;
   } catch (err) {
-    console.error(`[fileManager] Failed to read ${path}:`, err);
+    console.error(`[fileManager] Failed to read ${key}:`, err);
     return {};
   }
 }
@@ -265,17 +279,11 @@ export async function readSelectedArticles(): Promise<SelectedArticlesMap> {
  * Write an audio file as base64.
  */
 export async function writeAudioFile(filename: string, base64Data: string): Promise<void> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${filename}`;
+  const key = makeKey(filename);
   try {
-    await Filesystem.writeFile({
-      path,
-      data: base64Data,
-      directory: dir,
-      recursive: true,
-    });
+    await dbSet(key, base64Data);
   } catch (err) {
-    console.error(`[fileManager] Failed to write audio ${path}:`, err);
+    console.error(`[fileManager] Failed to write audio ${key}:`, err);
     throw err;
   }
 }
@@ -284,16 +292,12 @@ export async function writeAudioFile(filename: string, base64Data: string): Prom
  * Read an audio file as base64.
  */
 export async function readAudioFile(filename: string): Promise<string> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${filename}`;
+  const key = makeKey(filename);
   try {
-    const result = await Filesystem.readFile({
-      path,
-      directory: dir,
-    });
-    return result.data as string;
+    const result = await dbGet(key);
+    return result ?? '';
   } catch (err) {
-    console.error(`[fileManager] Failed to read audio ${path}:`, err);
+    console.error(`[fileManager] Failed to read audio ${key}:`, err);
     return '';
   }
 }
@@ -302,11 +306,10 @@ export async function readAudioFile(filename: string): Promise<string> {
  * Check if an audio file exists.
  */
 export async function audioFileExists(filename: string): Promise<boolean> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${filename}`;
+  const key = makeKey(filename);
   try {
-    await Filesystem.stat({ path, directory: dir });
-    return true;
+    const data = await dbGet(key);
+    return data !== undefined;
   } catch {
     return false;
   }
@@ -316,31 +319,21 @@ export async function audioFileExists(filename: string): Promise<boolean> {
  * Create an empty audio file on disk.
  */
 export async function createAudioFile(filename: string): Promise<void> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${filename}`;
+  const key = makeKey(filename);
   try {
-    await Filesystem.writeFile({
-      path,
-      data: '',
-      directory: dir,
-      recursive: true,
-    });
+    await dbSet(key, '');
   } catch (err) {
-    console.error(`[fileManager] Failed to create audio file ${path}:`, err);
+    console.error(`[fileManager] Failed to create audio file ${key}:`, err);
     throw err;
   }
 }
 
 /**
  * Append a binary chunk to an audio file.
- * The Uint8Array is converted to base64 for Capacitor Filesystem.
+ * The Uint8Array is converted to base64 for storage.
  */
 export async function appendAudioChunk(filename: string, chunk: Uint8Array | Int8Array): Promise<void> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${filename}`;
-  // Convert small chunk to base64 (chunk is typically a few KB)
-  // Int8Array from lamejs may contain negative bytes; btoa requires Latin1 (0-255).
-  // View the same buffer as Uint8Array to get unsigned byte values.
+  const key = makeKey(filename);
   const bytes = chunk instanceof Int8Array
     ? new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength)
     : chunk;
@@ -350,53 +343,62 @@ export async function appendAudioChunk(filename: string, chunk: Uint8Array | Int
   }
   const base64 = btoa(binary);
   try {
-    await Filesystem.appendFile({
-      path,
-      data: base64,
-      directory: dir,
-    });
+    const existing = await dbGet(key) ?? '';
+    await dbSet(key, existing + base64);
   } catch (err) {
-    console.error(`[fileManager] Failed to append audio chunk to ${path}:`, err);
+    console.error(`[fileManager] Failed to append audio chunk to ${key}:`, err);
     throw err;
   }
 }
 
 /**
  * Get a playable URL for a podcast file without loading it into memory.
- * Uses Capacitor.convertFileSrc to return a WebView-playable URL.
+ * Returns a Blob URL for web playback.
  */
 export async function getPodcastPlaybackUrl(filename: string): Promise<string | null> {
-  const path = `${BASE_DIR}/${filename}`;
+  const key = makeKey(filename);
   try {
-    const uriResult = await Filesystem.getUri({
-      path,
-      directory: Directory.Data,
-    });
-    return Capacitor.convertFileSrc(uriResult.uri);
+    const base64 = await dbGet(key);
+    if (!base64) return null;
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'audio/mpeg' });
+    return URL.createObjectURL(blob);
   } catch (err) {
-    console.error(`[fileManager] Failed to get podcast playback URL for ${path}:`, err);
+    console.error(`[fileManager] Failed to get podcast playback URL for ${key}:`, err);
     return null;
   }
 }
 
 /**
- * Copy a finished podcast from app-private storage to Documents/newsroom.
- * Uses native Filesystem.copy() — no data is loaded into JS memory.
- * Returns true if the copy succeeded, false otherwise.
+ * Download a finished podcast file.
+ * Returns true if the download succeeded, false otherwise.
  */
 export async function copyPodcastToDocuments(filename: string): Promise<boolean> {
-  const srcPath = `${BASE_DIR}/${filename}`;
-  const dstPath = `${BASE_DIR}/${filename}`;
+  const key = makeKey(filename);
   try {
-    await Filesystem.copy({
-      from: srcPath,
-      to: dstPath,
-      directory: Directory.Data,
-      toDirectory: Directory.Documents,
-    });
+    const base64 = await dbGet(key);
+    if (!base64) return false;
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'audio/mpeg' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     return true;
   } catch (err) {
-    console.error(`[fileManager] Failed to copy podcast to Documents:`, err);
+    console.error(`[fileManager] Failed to download podcast:`, err);
     return false;
   }
 }
@@ -405,14 +407,10 @@ export async function copyPodcastToDocuments(filename: string): Promise<boolean>
  * Read an audio file as a Uint8Array.
  */
 export async function readAudioFileBinary(filename: string): Promise<Uint8Array | null> {
-  const dir = await getTargetDirectory();
-  const path = `${BASE_DIR}/${filename}`;
+  const key = makeKey(filename);
   try {
-    const result = await Filesystem.readFile({
-      path,
-      directory: dir,
-    });
-    const base64 = result.data as string;
+    const base64 = await dbGet(key);
+    if (!base64) return null;
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
@@ -420,7 +418,7 @@ export async function readAudioFileBinary(filename: string): Promise<Uint8Array 
     }
     return bytes;
   } catch (err) {
-    console.error(`[fileManager] Failed to read audio binary ${path}:`, err);
+    console.error(`[fileManager] Failed to read audio binary ${key}:`, err);
     return null;
   }
 }

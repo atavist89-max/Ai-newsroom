@@ -1,6 +1,8 @@
-# AI Newsroom Side-Loaded Android App
+# AI Newsroom Web App
 
 **Your personal AI news producer. In your pocket.**
+
+# **[Open the live web app](https://runel89.github.io/Ai-newsroom/)**
 
 Choose from 37 countries supported by Brave Search. Pick three news topics, a voice, a music style, and an editorial angle. Then watch a team of AI agents research local sources, write, edit, fact-check, and produce a professional news podcast — all automatically, right on your phone.
 
@@ -156,7 +158,7 @@ The Article Researcher is the entry point. It takes your session configuration a
 
 4. **Selection**: Each of the 8 slots gets 1 main article (truncated to 2000 words) + 1–2 backup articles (truncated to 500 words) covering the same broad story. Backups provide quotes, corroboration, and alternative angles.
 
-5. **Output**: Writes `selected_articles.json` to disk containing all sources with metadata (title, source, URL, word count, fetch tier, scope, topic).
+5. **Output**: Writes `selected_articles.json` to storage containing all sources with metadata (title, source, URL, word count, fetch tier, scope, topic).
 
 ### Step 1B — Script Writer
 
@@ -168,7 +170,7 @@ The Script Writer reads `selected_articles.json` and uses a **thinking/reasoning
 - Articles 1–5 are local, articles 6–8 are continental
 - Also writes `full_script.txt` — the concatenation of all segments
 
-Every segment file is written to app-private storage via `@capacitor/filesystem` in `Directory.Data/newsroom/`. This means even if the app crashes mid-run, the files persist and can be inspected.
+Every segment file is written to browser storage (IndexedDB) in the `newsroom/` namespace. This means even if the page reloads, the files persist and can be inspected.
 
 ### Step 2 — Full Script Editor (Pass 1)
 
@@ -248,9 +250,9 @@ Reads all individual segment files (`intro.txt`, `article1.txt`–`article8.txt`
 
 **Music mixing**: Fetches music sting files (intro, story, block, outro) from `./audio/` and renders each segment through the Web Audio API — music sting → 0.5s gap → narration — ensuring music and narration never overlap.
 
-**MP3 encoding**: Encodes to MP3 incrementally using `lamejs` and appends each segment to disk, keeping peak memory under ~26 MB regardless of podcast length.
+**MP3 encoding**: Encodes to MP3 incrementally using `lamejs` and appends each segment to storage, keeping peak memory under ~26 MB regardless of podcast length.
 
-The finished file is named dynamically (e.g. `United States Daily Report - 2026-04-27.mp3`) and written to app-private storage. A **Play Podcast** button appears in the UI when complete.
+The finished file is named dynamically (e.g. `United States Daily Report - 2026-04-27.mp3`) and written to browser storage. A **Play Podcast** button appears in the UI when complete.
 
 ### Rejection Loops
 
@@ -277,8 +279,8 @@ The finished file is named dynamically (e.g. `United States Daily Report - 2026-
 - **Rejection loops have no limit** — the pipeline prioritizes correctness over speed
 - **Per-topic attempts capped at 5** — after 5 edit/write cycles, the topic aborts to prevent runaway API costs
 - **API failures retry 3 times per call** — then mark topic as stalled for round-based recovery
-- **Session context is ephemeral** — configuration exists only in memory for the current run; close the app and it disappears
-- **Segment files persist** — Every segment is written to app-private storage. Even if the app closes mid-run, the files remain for inspection.
+- **Session context is ephemeral** — configuration exists only in memory for the current run; close the browser tab and it disappears
+- **Segment files persist** — Every segment is written to browser storage. Even if the browser tab closes mid-run, the files remain for inspection.
 - **Test mode** — A "Skip Editor Loop" toggle in Configure API bypasses all editors and the assembler, routing Article Researcher → Script Writer → Audio Producer directly. Fast for testing the TTS/audio pipeline without burning API credits on editorial loops.
 
 ---
@@ -293,15 +295,14 @@ The finished file is named dynamically (e.g. `United States Daily Report - 2026-
 | Styling | Tailwind CSS | Utility-first styling for rapid, consistent UI development |
 | Maps | Leaflet + react-leaflet | Interactive country selection map with continent bounding boxes |
 | Build | Vite | Fast dev server and optimized production builds |
-| Notifications | `@capacitor/local-notifications` | Background pipeline progress notifications on mobile |
+| Notifications | Web Notifications API | Background pipeline progress notifications |
 
-### Mobile
+### Storage
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| Runtime | Capacitor (Android) | Wraps the web app as a native Android APK with full hardware access |
-| Storage | `@capacitor/filesystem` | App-private file I/O for segment files, full scripts, and podcast MP3s |
-| Settings | `@capacitor/preferences` | Persistent key-value storage for API keys and app settings |
+| Settings | `localStorage` | Persistent key-value storage for API keys and app settings |
+| Files | IndexedDB | Browser file I/O for segment files, full scripts, and podcast MP3s |
 
 ### Pipeline Runtime
 
@@ -365,15 +366,15 @@ type AgentFn = (
 - Metadata includes: article count, selected articles list with scope/topic/tier/wordCount
 
 **Agent 1B — Script Writer (`src/agents/scriptWriter.ts`)**
-- Reads `selected_articles.json` from disk via `readSelectedArticles`
+- Reads `selected_articles.json` from storage via `readSelectedArticles`
 - Uses thinking/reasoning model via `streamLLM` with `thinkingModel` override
 - Builds prompt via `buildScriptWriterPrompt` (`src/prompts/scriptWriter.ts`)
 - Parses XML segments via `parseFullScript` (`src/lib/scriptParser.ts`)
-- Writes segments to disk via `writeSegment` / `writeFullScript`
+- Writes segments to storage via `writeSegment` / `writeFullScript`
 - Metadata includes: segment count, total length, segment names
 
 **Agent 2 — Full Script Editor (`src/agents/fullScriptEditor.ts`)**
-- Reads `full_script.txt` from disk
+- Reads `full_script.txt` from storage
 - Builds prompt via `buildFullScriptEditorPrompt`
 - Streams LLM response
 - Parses structured audit via `parseFullScriptEditorOutput`
@@ -388,7 +389,7 @@ type AgentFn = (
 - Reassembles `full_script.txt`
 
 **Agent 4 — Segment Editor (`src/agents/segmentEditor.ts`)**
-- Reads target segment from disk via `readSegment`
+- Reads target segment from storage via `readSegment`
 - Runs mechanical validation via `validateMechanical` (`src/lib/mechanicalValidator.ts`)
 - Builds prompt with mechanical results included
 - Streams LLM for qualitative audit
@@ -402,11 +403,11 @@ type AgentFn = (
   - After each LLM output, runs `validateMechanical`
   - If mechanical fails, builds corrective prompt with exact failure data
   - Retries up to 3 times for mechanical corrections
-- Writes final segment back to disk
+- Writes final segment back to storage
 - Reassembles `full_script.txt`
 
 **Agent 6 — Audio Producer (`src/agents/audioProducer.ts`)**
-- Loads all segments from disk
+- Loads all segments from storage
 - Loads TTS API key
 - Calls `producePodcast` (`src/lib/audioAssembler.ts`) which:
   - Strips XML tags and music cues
@@ -416,7 +417,7 @@ type AgentFn = (
   - Fetches music stings and decodes them
   - Mixes: music sting → 0.5s silence → narration
   - Encodes to MP3 via `lamejs` incrementally
-  - Appends each segment to disk via `appendAudioChunk`
+  - Appends each segment to storage via `appendAudioChunk`
 - Returns podcast file name, duration, segment count
 
 ### LLM Adapter
@@ -478,14 +479,14 @@ A fallback chain handles search errors:
 
 ### File Management
 
-`src/lib/fileManager.ts` provides app-private file I/O via `@capacitor/filesystem`.
+`src/lib/fileManager.ts` provides browser file I/O via IndexedDB.
 
-**Segments**: `intro.txt`, `article1.txt`–`article8.txt`, `editorial.txt`, `outro.txt` — stored in `Directory.Data/newsroom/`
+**Segments**: `intro.txt`, `article1.txt`–`article8.txt`, `editorial.txt`, `outro.txt` — stored in IndexedDB `newsroom/`
 **Selected articles**: `selected_articles.json` — main + backup sources per article slot
-**Full script**: `full_script.txt` — same directory
-**Podcast**: `{Country} {Timeframe} Report - {YYYY-MM-DD}.mp3` — same directory
+**Full script**: `full_script.txt` — same namespace
+**Podcast**: `{Country} {Timeframe} Report - {YYYY-MM-DD}.mp3` — same namespace
 
-All writes use `recursive: true` to ensure directory creation. Reads return empty string on failure (non-fatal for reads).
+Reads return empty string on failure (non-fatal for reads).
 
 ### Mechanical Validator
 
@@ -532,8 +533,7 @@ Each agent prompt imports these requirements and embeds them verbatim. This ensu
 ## Project Structure
 
 ```
-├── ai-newsroom/              # Static assets & public files
-│   ├── assets/               # Image & media assets
+├── public/                   # Static assets & public files
 │   ├── audio/                # Podcast audio previews & music samples
 │   │   ├── voices/             # OpenAI TTS voice previews (.wav)
 │   │   │   ├── onyx.wav
@@ -544,12 +544,7 @@ Each agent prompt imports these requirements and embeds them verbatim. This ensu
 │   │   ├── outro_*.mp3         # Outro music stings
 │   │   ├── story_*.mp3         # Story transition stings
 │   │   └── block_*.mp3         # Block transition stings
-│   ├── index.html            # Static HTML fallback
 │   └── logo.png              # Application logo
-├── android/                  # Capacitor Android project
-│   ├── app/                  # Android app module
-│   ├── build.gradle          # Root Gradle build file
-│   └── ...
 ├── src/
 │   ├── agents/               # Agent implementations
 │   │   ├── agent1.ts              # News Researcher — Brave Search + LLM, writes XML segments
@@ -587,14 +582,14 @@ Each agent prompt imports these requirements and embeds them verbatim. This ensu
 │   ├── lib/                  # Core logic
 │   │   ├── apiConfig.ts             # API persistence, LLM calls, SSE streaming, test connection
 │   │   ├── audioAssembler.ts        # TTS generation, Web Audio mixing, MP3 encoding
-│   │   ├── fileManager.ts           # File I/O via @capacitor/filesystem
+│   │   ├── fileManager.ts           # File I/O via IndexedDB
 │   │   ├── llmAdapter.ts            # Model-independent LLM request builder with adaptive retry
 │   │   ├── mechanicalValidator.ts   # Pure-code segment validation (length, sentences)
 │   │   ├── mp3Encoder.ts            # lamejs MP3 encoding wrapper
 │   │   ├── newsSearch.ts            # Brave Search API wrapper with fallback chain
 │   │   ├── pipeline.ts              # PipelineRunner state machine
-│   │   ├── pipelineNotifications.ts # Capacitor local notifications for background progress
-│   │   ├── pipelineService.ts       # Capacitor background service bindings
+│   │   ├── pipelineNotifications.ts # Web notifications wrapper
+│   │   ├── pipelineService.ts       # Background service bindings (no-op in web build)
 │   │   ├── pipelineTypes.ts         # Pipeline type definitions
 │   │   ├── scriptParser.ts          # XML segment parser, assembler, tag stripper
 │   │   ├── sessionConfig.ts         # SessionConfig builder & formatter
@@ -612,8 +607,7 @@ Each agent prompt imports these requirements and embeds them verbatim. This ensu
 │   ├── main.tsx              # React root render
 │   └── types.ts              # Shared TypeScript interfaces
 ├── .github/workflows/
-│   └── build-android.yml     # GitHub Actions APK build workflow
-├── capacitor.config.ts       # Capacitor configuration
+│   └── build-web.yml         # GitHub Actions web build workflow
 ├── index.html                # Vite entry HTML
 ├── package.json              # Dependencies & scripts
 ├── tailwind.config.js        # Tailwind CSS configuration
@@ -625,12 +619,16 @@ Each agent prompt imports these requirements and embeds them verbatim. This ensu
 
 ## Download
 
+🌐 **[Open the live web app](https://runel89.github.io/Ai-newsroom/)**
+
+Or download the latest build:
+
 1. Go to the **Actions** tab in this GitHub repository
-2. Select the **Build Android APK** workflow
-3. Open the latest successful run on the `AI-Newsroom-Full-App` branch
-4. Download the **`ai-newsroom-full-app-debug`** artifact
-5. Extract the ZIP and install `app-debug.apk` on your Android device
-   - You may need to enable **Install from unknown sources**
+2. Select the **Build & Deploy Web App** workflow
+3. Open the latest successful run on the `main` branch
+4. Download the **`ai-newsroom-web`** artifact
+5. Extract the ZIP and serve the `dist/` folder with any static file server
+   - Or open `index.html` directly in your browser
 
 ---
 

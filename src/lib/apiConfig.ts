@@ -1,4 +1,3 @@
-import { Preferences } from '@capacitor/preferences';
 import type { ApiConfig, AppApiConfig, ApiProvider } from '../types';
 import { fetchWithAdaptiveRetry, buildLlmBody } from './llmAdapter';
 
@@ -32,7 +31,7 @@ function migrateOldConfig(parsed: Record<string, unknown>): AppApiConfig {
 
 export async function loadApiConfig(): Promise<AppApiConfig> {
   try {
-    const { value } = await Preferences.get({ key: API_CONFIG_KEY });
+    const value = localStorage.getItem(API_CONFIG_KEY);
     if (value) {
       const parsed = JSON.parse(value) as Record<string, unknown>;
       // Detect old flat format: has 'lightweightModel' or 'thinkingModel' keys
@@ -48,10 +47,7 @@ export async function loadApiConfig(): Promise<AppApiConfig> {
 }
 
 export async function saveApiConfig(config: AppApiConfig): Promise<void> {
-  await Preferences.set({
-    key: API_CONFIG_KEY,
-    value: JSON.stringify(config),
-  });
+  localStorage.setItem(API_CONFIG_KEY, JSON.stringify(config));
 }
 
 export const providerOptions: { value: ApiProvider; label: string; defaultModel: string; defaultBaseUrl: string }[] = [
@@ -231,30 +227,28 @@ const BRAVE_API_KEY = 'brave_api_key';
 
 export async function loadBraveApiKey(): Promise<string> {
   try {
-    const { value } = await Preferences.get({ key: BRAVE_API_KEY });
-    return value ?? '';
+    return localStorage.getItem(BRAVE_API_KEY) ?? '';
   } catch {
     return '';
   }
 }
 
 export async function saveBraveApiKey(key: string): Promise<void> {
-  await Preferences.set({ key: BRAVE_API_KEY, value: key });
+  localStorage.setItem(BRAVE_API_KEY, key);
 }
 
 const TTS_API_KEY = 'tts_api_key';
 
 export async function loadTtsApiKey(): Promise<string> {
   try {
-    const { value } = await Preferences.get({ key: TTS_API_KEY });
-    return value ?? '';
+    return localStorage.getItem(TTS_API_KEY) ?? '';
   } catch {
     return '';
   }
 }
 
 export async function saveTtsApiKey(key: string): Promise<void> {
-  await Preferences.set({ key: TTS_API_KEY, value: key });
+  localStorage.setItem(TTS_API_KEY, key);
 }
 
 export async function testTtsApiKey(key: string): Promise<{ success: boolean; message: string }> {
@@ -290,15 +284,14 @@ const TEST_MODE_KEY = 'test_mode_enabled';
 
 export async function loadTestMode(): Promise<boolean> {
   try {
-    const { value } = await Preferences.get({ key: TEST_MODE_KEY });
-    return value === 'true';
+    return localStorage.getItem(TEST_MODE_KEY) === 'true';
   } catch {
     return false;
   }
 }
 
 export async function saveTestMode(enabled: boolean): Promise<void> {
-  await Preferences.set({ key: TEST_MODE_KEY, value: String(enabled) });
+  localStorage.setItem(TEST_MODE_KEY, String(enabled));
 }
 
 export async function testBraveApiKey(key: string): Promise<{ success: boolean; message: string }> {
@@ -306,21 +299,22 @@ export async function testBraveApiKey(key: string): Promise<{ success: boolean; 
     if (!key.trim()) {
       return { success: false, message: 'Brave Search API key is required' };
     }
-    const { CapacitorHttp } = await import('@capacitor/core');
-    const response = await CapacitorHttp.request({
-      url: 'https://api.search.brave.com/res/v1/web/search',
+    const url = new URL('https://api.search.brave.com/res/v1/web/search');
+    url.searchParams.set('q', 'test');
+    url.searchParams.set('count', '1');
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'X-Subscription-Token': key.trim(),
       },
-      params: { q: 'test', count: '1' },
-      responseType: 'json',
     });
-    if (response.status >= 200 && response.status < 300) {
+
+    if (response.ok) {
       return { success: true, message: 'Brave Search connection successful!' };
     }
-    const errorText = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+    const errorText = await response.text();
     return { success: false, message: `Connection failed: HTTP ${response.status} ${errorText}` };
   } catch (err) {
     return { success: false, message: `Connection failed: ${err instanceof Error ? err.message : String(err)}` };
