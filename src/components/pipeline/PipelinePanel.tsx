@@ -57,11 +57,15 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
       },
       onComplete: async (draft) => {
         console.log('Pipeline complete:', draft);
+        console.log('[PipelinePanel] Looking for podcast file:', outputFileName);
         // Try to get a playable URL for the produced podcast
         try {
           const url = await getPodcastPlaybackUrl(outputFileName);
+          console.log('[PipelinePanel] Podcast URL result:', url ? 'found' : 'null');
           if (url) {
             setPodcastUrl(url);
+          } else {
+            console.warn('[PipelinePanel] Podcast file is empty or missing:', outputFileName);
           }
         } catch (err) {
           console.error('Failed to load podcast:', err);
@@ -72,7 +76,7 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
           if (exported) {
             console.log('[PipelinePanel] Podcast exported to Documents/Newsroom');
           } else {
-            console.log('[PipelinePanel] Podcast export to Documents failed — file remains in app-private storage');
+            console.log('[PipelinePanel] Podcast export to Documents failed — file remains in browser storage');
           }
         } catch (err) {
           console.error('[PipelinePanel] Export error:', err);
@@ -254,6 +258,12 @@ export default function PipelinePanel({ sessionConfig }: PipelinePanelProps) {
             {isPlayingPodcast ? <Pause className="w-4 h-4" /> : <Headphones className="w-4 h-4" />}
             {isPlayingPodcast ? 'Pause' : 'Play Podcast'}
           </button>
+        )}
+        {state.status === 'complete' && !podcastUrl && (
+          <span className="flex items-center gap-2 px-4 py-2 text-xs text-amber-400 bg-amber-900/20 border border-amber-500/30 rounded-lg">
+            <AlertCircle className="w-4 h-4" />
+            Podcast file missing — check browser console
+          </span>
         )}
       </div>
 

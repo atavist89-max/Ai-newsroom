@@ -342,9 +342,11 @@ export async function appendAudioChunk(filename: string, chunk: Uint8Array | Int
     binary += String.fromCharCode(bytes[i]);
   }
   const base64 = btoa(binary);
+  console.log(`[fileManager] appendAudioChunk: key=${key}, chunkSize=${bytes.length}, base64Length=${base64.length}`);
   try {
     const existing = await dbGet(key) ?? '';
     await dbSet(key, existing + base64);
+    console.log(`[fileManager] appendAudioChunk: key=${key}, newTotalLength=${existing.length + base64.length}`);
   } catch (err) {
     console.error(`[fileManager] Failed to append audio chunk to ${key}:`, err);
     throw err;
@@ -359,6 +361,7 @@ export async function getPodcastPlaybackUrl(filename: string): Promise<string | 
   const key = makeKey(filename);
   try {
     const base64 = await dbGet(key);
+    console.log(`[fileManager] getPodcastPlaybackUrl: key=${key}, exists=${base64 !== undefined}, length=${base64?.length ?? 0}`);
     if (!base64) return null;
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
