@@ -224,6 +224,7 @@ export async function streamLLM(
 }
 
 const BRAVE_API_KEY = 'brave_api_key';
+const BRAVE_PROXY_URL = 'brave_proxy_url';
 
 export async function loadBraveApiKey(): Promise<string> {
   try {
@@ -294,16 +295,32 @@ export async function saveTestMode(enabled: boolean): Promise<void> {
   localStorage.setItem(TEST_MODE_KEY, String(enabled));
 }
 
-export async function testBraveApiKey(key: string): Promise<{ success: boolean; message: string }> {
+export async function loadBraveProxyUrl(): Promise<string> {
+  try {
+    return localStorage.getItem(BRAVE_PROXY_URL) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export async function saveBraveProxyUrl(url: string): Promise<void> {
+  localStorage.setItem(BRAVE_PROXY_URL, url);
+}
+
+export async function testBraveApiKey(key: string, proxyUrl?: string): Promise<{ success: boolean; message: string }> {
   try {
     if (!key.trim()) {
       return { success: false, message: 'Brave Search API key is required' };
     }
-    const url = new URL('https://api.search.brave.com/res/v1/web/search');
-    url.searchParams.set('q', 'test');
-    url.searchParams.set('count', '1');
+    const braveUrl = new URL('https://api.search.brave.com/res/v1/web/search');
+    braveUrl.searchParams.set('q', 'test');
+    braveUrl.searchParams.set('count', '1');
 
-    const response = await fetch(url.toString(), {
+    const targetUrl = proxyUrl?.trim()
+      ? `${proxyUrl.trim()}?url=${encodeURIComponent(braveUrl.toString())}`
+      : braveUrl.toString();
+
+    const response = await fetch(targetUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

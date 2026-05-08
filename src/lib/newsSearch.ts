@@ -1,4 +1,4 @@
-import { loadBraveApiKey } from './apiConfig';
+import { loadBraveApiKey, loadBraveProxyUrl } from './apiConfig';
 import { getCountryByCode, continents } from '../data/countries';
 
 
@@ -76,23 +76,29 @@ async function fetchBraveSearch(params: {
     throw new Error('Brave Search API key is missing. Go to Configure API to add one.');
   }
 
-  const url = new URL(BRAVE_BASE_URL);
-  url.searchParams.set('q', params.query);
-  url.searchParams.set('count', String(Math.min(params.count || 10, 20)));
-  url.searchParams.set('safesearch', 'off');
-  if (params.freshness) url.searchParams.set('freshness', params.freshness);
-  if (params.searchLang) url.searchParams.set('search_lang', params.searchLang);
+  const proxyUrl = await loadBraveProxyUrl();
+
+  const braveUrl = new URL(BRAVE_BASE_URL);
+  braveUrl.searchParams.set('q', params.query);
+  braveUrl.searchParams.set('count', String(Math.min(params.count || 10, 20)));
+  braveUrl.searchParams.set('safesearch', 'off');
+  if (params.freshness) braveUrl.searchParams.set('freshness', params.freshness);
+  if (params.searchLang) braveUrl.searchParams.set('search_lang', params.searchLang);
   if (params.country && BRAVE_SUPPORTED_COUNTRIES.has(params.country.toUpperCase())) {
-    url.searchParams.set('country', params.country.toLowerCase());
+    braveUrl.searchParams.set('country', params.country.toLowerCase());
   }
   if (params.offset !== undefined && params.offset > 0) {
-    url.searchParams.set('offset', String(params.offset));
+    braveUrl.searchParams.set('offset', String(params.offset));
   }
   if (params.goggles) {
-    url.searchParams.set('goggles', params.goggles);
+    braveUrl.searchParams.set('goggles', params.goggles);
   }
 
-  const response = await fetch(url.toString(), {
+  const targetUrl = proxyUrl.trim()
+    ? `${proxyUrl.trim()}?url=${encodeURIComponent(braveUrl.toString())}`
+    : braveUrl.toString();
+
+  const response = await fetch(targetUrl, {
     method: 'GET',
     headers: {
       'Accept': 'application/json',

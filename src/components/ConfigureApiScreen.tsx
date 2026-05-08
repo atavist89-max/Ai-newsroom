@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Settings, Cpu, Save, TestTube, Eye, EyeOff, Loader2, CheckCircle, XCircle, Search, FolderOpen, Headphones, Zap, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { loadApiConfig, saveApiConfig, testApiConnection, loadBraveApiKey, saveBraveApiKey, testBraveApiKey, loadTtsApiKey, saveTtsApiKey, testTtsApiKey, loadTestMode, saveTestMode, providerOptions, defaultAppApiConfig } from '../lib/apiConfig';
+import { loadApiConfig, saveApiConfig, testApiConnection, loadBraveApiKey, saveBraveApiKey, testBraveApiKey, loadBraveProxyUrl, saveBraveProxyUrl, loadTtsApiKey, saveTtsApiKey, testTtsApiKey, loadTestMode, saveTestMode, providerOptions, defaultAppApiConfig } from '../lib/apiConfig';
 import type { AppApiConfig, ApiProvider } from '../types';
 
 type ConnectionKey = 'lightweight' | 'thinking';
@@ -27,6 +27,7 @@ export default function ConfigureApiScreen() {
   const [showKey, setShowKey] = useState<Record<ConnectionKey, boolean>>({ lightweight: false, thinking: false });
   const [braveApiKey, setBraveApiKey] = useState('');
   const [showBraveKey, setShowBraveKey] = useState(false);
+  const [braveProxyUrl, setBraveProxyUrl] = useState('');
   const [ttsApiKey, setTtsApiKey] = useState('');
   const [showTtsKey, setShowTtsKey] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -50,10 +51,11 @@ export default function ConfigureApiScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([loadApiConfig(), loadBraveApiKey(), loadTtsApiKey(), loadTestMode()]).then(([loaded, braveKey, ttsKey, testModeEnabled]) => {
+    Promise.all([loadApiConfig(), loadBraveApiKey(), loadBraveProxyUrl(), loadTtsApiKey(), loadTestMode()]).then(([loaded, braveKey, braveProxy, ttsKey, testModeEnabled]) => {
       if (!cancelled) {
         setConfig(loaded);
         setBraveApiKey(braveKey);
+        setBraveProxyUrl(braveProxy);
         setTtsApiKey(ttsKey);
         setTestMode(testModeEnabled);
         setIsLoaded(true);
@@ -82,6 +84,7 @@ export default function ConfigureApiScreen() {
       await Promise.all([
         saveApiConfig(config),
         saveBraveApiKey(braveApiKey),
+        saveBraveProxyUrl(braveProxyUrl),
         saveTtsApiKey(ttsApiKey),
         saveTestMode(testMode),
       ]);
@@ -113,7 +116,7 @@ export default function ConfigureApiScreen() {
     setIsTestingBrave(true);
     setBraveTestResult(null);
     try {
-      const result = await testBraveApiKey(braveApiKey);
+      const result = await testBraveApiKey(braveApiKey, braveProxyUrl);
       setBraveTestResult(result);
       if (result.success) {
         toast.success(result.message);
@@ -216,6 +219,18 @@ export default function ConfigureApiScreen() {
               api.search.brave.com
             </a>.
           </p>
+          <div className="mt-3">
+            <input
+              type="text"
+              value={braveProxyUrl}
+              onChange={(e) => setBraveProxyUrl(e.target.value)}
+              placeholder="https://your-worker.your-subdomain.workers.dev"
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-slate-500 mt-1.5">
+              <strong>CORS Proxy URL (web app only):</strong> Brave Search does not allow browser requests directly. Deploy the included Cloudflare Worker from <code className="text-slate-300">proxy/brave-proxy.js</code> and paste its URL here.
+            </p>
+          </div>
           <button
             onClick={handleTestBrave}
             disabled={isTestingBrave || !braveApiKey.trim()}
