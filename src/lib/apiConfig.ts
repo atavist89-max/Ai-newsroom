@@ -226,6 +226,9 @@ export async function streamLLM(
 const BRAVE_API_KEY = 'brave_api_key';
 const BRAVE_PROXY_URL = 'brave_proxy_url';
 
+// Default CORS proxy for Brave Search (web app only)
+const DEFAULT_BRAVE_PROXY_URL = 'https://wandering-salad-4125.atavist89.workers.dev';
+
 export async function loadBraveApiKey(): Promise<string> {
   try {
     return localStorage.getItem(BRAVE_API_KEY) ?? '';
@@ -297,9 +300,9 @@ export async function saveTestMode(enabled: boolean): Promise<void> {
 
 export async function loadBraveProxyUrl(): Promise<string> {
   try {
-    return localStorage.getItem(BRAVE_PROXY_URL) ?? '';
+    return localStorage.getItem(BRAVE_PROXY_URL) ?? DEFAULT_BRAVE_PROXY_URL;
   } catch {
-    return '';
+    return DEFAULT_BRAVE_PROXY_URL;
   }
 }
 
