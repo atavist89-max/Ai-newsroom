@@ -203,7 +203,7 @@ The UI shows a live mini-grid of colored dots — one per topic — updating in 
    Results are shown in the UI with exact counts.
 
    **Qualitative audit** (LLM, 5 rules):
-   - **DEPTH**: ≥3 distinct developments, events, or angles
+   - **DEPTH**: ONE major development explained with full context (background, why it matters, who is involved, and what happens next)
    - **ACCESSIBILITY**: Zero-knowledge listener can follow without Googling. Every term, acronym, organization defined on first mention
    - **FORWARD_CLOSE**: Ends with "what to watch" or "what happens next"
    - **SOURCE_ATTRIBUTION**: Specific sources cited by name in the text
